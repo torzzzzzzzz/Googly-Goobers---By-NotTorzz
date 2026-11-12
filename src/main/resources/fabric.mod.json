@@ -1,0 +1,45 @@
+{
+	"schemaVersion": 1,
+	"id": "eyeball",
+	"version": "${version}",
+	"name": "EyeBall Mod",
+	"description": "Gives players enormous 3D googly eyes, expressive eyebrows and talking mouths. Hit someone and their eyes turn into spinning hypnotic spirals! Includes an optional fluffy red Elmo-style character transformation.",
+	"authors": [
+		"NotTorzz"
+	],
+	"contact": {
+		"sources": "https://github.com/torzzzzzzzz/EyeBall-Mod-by-NotTorzz"
+	},
+	"icon": "assets/eyeball/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.nottorzz.eyeball.EyeBallMod"
+		],
+		"client": [
+			"com.nottorzz.eyeball.client.EyeBallClient"
+		],
+		"modmenu": [
+			"com.nottorzz.eyeball.client.compat.ModMenuIntegration"
+		],
+		"voicechat": [
+			"com.nottorzz.eyeball.compat.voice.EyeBallVoicechatPlugin"
+		]
+	},
+	"mixins": [
+		{
+			"config": "eyeball.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.20.1",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"modmenu": "*",
+		"voicechat": "*"
+	}
+}
