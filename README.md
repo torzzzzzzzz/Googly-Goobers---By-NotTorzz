@@ -155,14 +155,17 @@ The mod ships with an automated in-game test suite that launches a real Minecraf
 creates a world and a dedicated server, and checks every feature while taking screenshots:
 
 ```bash
-./gradlew runClientGameTest          # desktop
-./tools/run-gametest.sh              # headless Linux (Xvfb + EGL)
+./gradlew runClientGameTest              # desktop, development environment
+./gradlew runProductionClientGameTest    # against the built release jar in a production Fabric setup
+./tools/run-gametest.sh                  # headless Linux (Xvfb + EGL)
 ```
 
-The report is written to `build/run/clientGameTest/eyeball-test-report.md`. Run it twice: the
-second launch also checks that settings survived the restart.
+The report is written to `build/run/clientGameTest/eyeball-test-report.md` (or
+`build/run/productionClientGameTest/` for the production run). Run it twice: the second launch
+also checks that settings survived the restart.
 
-The suite has 99 checks, grouped into 15 areas:
+Each launch runs 87 checks, and the second launch adds 6 restart-persistence checks (93 in
+total). They are grouped into 15 areas:
 - the title-screen menu
 - googly rendering
 - pupil movement (each eye independently)
@@ -199,6 +202,15 @@ needs no client classes.
 | `client.target` | Who gets which effect |
 | `client.talk`, `client.voice` | Chat and voice talking detection |
 | `network`, `server`, `client.network` | Multiplayer synchronisation and commands |
+
+## Known limitations
+
+- Minecraft 26.3 with Fabric only.
+- Other players only see your look if they have EyeBall too, and sharing needs EyeBall on the server.
+- Voice lip sync is built against Simple Voice Chat's client API (2.6.x). It could not be tested
+  with a live microphone in the automated test environment. The chat-based talking is fully tested.
+- The Mod Menu button is built against Mod Menu 21.0.0's API. Mod Menu itself is not part of the
+  automated tests; the G key and the menu are.
 
 ## Notes
 

@@ -53,6 +53,36 @@ dependencies {
 	clientCompileOnly "de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}"
 }
 
+dependencies {
+	// Mods placed next to the built jar when testing it in a production (non-development) environment.
+	productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+// The in-game test suite packaged as its own mod, so it can run against the real release jar.
+def gametestJar = tasks.register("gametestJar", Jar) {
+	archiveClassifier = "gametest"
+	destinationDirectory = layout.buildDirectory.dir("gametest-libs")
+	from sourceSets.gametest.output
+}
+
+// ./gradlew runProductionClientGameTest - launches real Fabric Loader with a mods folder containing
+// the built eyeball jar, Fabric API and the test mod, and runs the whole in-game test suite.
+tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
+	group = "verification"
+	description = "Runs the in-game test suite against the built mod jar in a production Fabric environment."
+	def prodRunDir = layout.buildDirectory.dir("run/productionClientGameTest")
+	mods.from(tasks.named("jar"))
+	mods.from(gametestJar)
+	mods.from(configurations.productionRuntimeMods)
+	jvmArgs.add("-Dfabric.client.gametest")
+	runDir = prodRunDir
+	doFirst {
+		def dir = prodRunDir.get().asFile
+		dir.mkdirs()
+		new File(dir, "eula.txt").text = "eula=true\n"
+	}
+}
+
 processResources {
 	def version = project.version
 	inputs.property "version", version
