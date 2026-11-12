@@ -25,10 +25,8 @@ public final class FaceRenderData {
 	public final float characterSize;
 	/** Squared distance to the camera, for level of detail. */
 	public final double distanceSq;
-	/** Size multipliers for the two eyes (per-player asymmetry is already in the pose). */
-	public final float eyeOffsetSkew;
 
-	public FaceRenderData(int flags, FacePose pose, EyeBallConfig config, double distanceSq, float eyeOffsetSkew) {
+	public FaceRenderData(int flags, FacePose pose, EyeBallConfig config, double distanceSq) {
 		this.googly = Appearance.googly(flags);
 		this.elmo = Appearance.elmo(flags);
 		// Elmo has no eyebrows of his own; brows come with the googly-eyes look.
@@ -41,7 +39,6 @@ public final class FaceRenderData {
 		this.eyeSpacing = config.eyeSpacing;
 		this.characterSize = config.characterSize;
 		this.distanceSq = distanceSq;
-		this.eyeOffsetSkew = eyeOffsetSkew;
 	}
 
 	/** Segments used for round shapes: fewer for faces far away. */

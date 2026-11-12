@@ -147,19 +147,37 @@ public final class EyeMesh {
 		float pcx = this.pupilX * maxOffset;
 		float pcy = this.pupilY * maxOffset;
 		int n = this.segments;
-		int pupil = MeshWriter.argb(PUPIL);
-		int pupilEdge = MeshWriter.argb(PUPIL_EDGE);
-		for (int k = 0; k < n; k++) {
-			float ax = pcx + rp * this.cos[k];
-			float ay = pcy + rp * this.sin[k];
-			float bx = pcx + rp * this.cos[k + 1];
-			float by = pcy + rp * this.sin[k + 1];
-			this.surfaceTriangle(w, pcx, pcy, pupil, ax, ay, pupilEdge, bx, by, pupilEdge, 0.035F);
+		// Concentric rings, so the pupil hugs the curved dome instead of cutting under it.
+		int rings = 4;
+		float lift = 0.045F;
+		for (int j = 0; j < rings; j++) {
+			float r0 = rp * j / rings;
+			float r1 = rp * (j + 1) / rings;
+			int c0 = MeshWriter.mix(PUPIL, PUPIL_EDGE, (float) j / rings);
+			int c1 = MeshWriter.mix(PUPIL, PUPIL_EDGE, (float) (j + 1) / rings);
+			for (int k = 0; k < n; k++) {
+				float ox0 = pcx + r1 * this.cos[k];
+				float oy0 = pcy + r1 * this.sin[k];
+				float ox1 = pcx + r1 * this.cos[k + 1];
+				float oy1 = pcy + r1 * this.sin[k + 1];
+				if (j == 0) {
+					this.surfaceTriangle(w, pcx, pcy, c0, ox0, oy0, c1, ox1, oy1, c1, lift);
+				} else {
+					float ix0 = pcx + r0 * this.cos[k];
+					float iy0 = pcy + r0 * this.sin[k];
+					float ix1 = pcx + r0 * this.cos[k + 1];
+					float iy1 = pcy + r0 * this.sin[k + 1];
+					this.surfaceVertex(w, ix0, iy0, c0, lift);
+					this.surfaceVertex(w, ox0, oy0, c1, lift);
+					this.surfaceVertex(w, ox1, oy1, c1, lift);
+					this.surfaceVertex(w, ix1, iy1, c0, lift);
+				}
+			}
 		}
 		// Shiny highlights make the eyes look wet and alive.
 		int highlight = MeshWriter.argb(HIGHLIGHT);
-		this.surfaceDisc(w, pcx + rp * 0.34F, pcy + rp * 0.38F, rp * 0.27F, highlight, 0.07F, Math.max(8, n / 2));
-		this.surfaceDisc(w, pcx - rp * 0.3F, pcy - rp * 0.36F, rp * 0.11F, highlight, 0.07F, 8);
+		this.surfaceDisc(w, pcx + rp * 0.34F, pcy + rp * 0.38F, rp * 0.27F, highlight, 0.085F, Math.max(8, n / 2));
+		this.surfaceDisc(w, pcx - rp * 0.3F, pcy - rp * 0.36F, rp * 0.11F, highlight, 0.085F, 8);
 	}
 
 	private void buildSpiral(MeshWriter w) {
@@ -169,7 +187,7 @@ public final class EyeMesh {
 		float rEnd = ri * 0.93F * grow;
 		float pitch = (rEnd - rStart) / SPIRAL_TURNS;
 		float bandHalf = pitch * 0.27F;
-		int steps = Math.clamp(this.segments * 3, 36, 120);
+		int steps = Math.clamp(this.segments * 3, 60, 120);
 		int color = MeshWriter.argb(SPIRAL);
 		float prevInnerX = 0.0F;
 		float prevInnerY = 0.0F;
@@ -191,14 +209,14 @@ public final class EyeMesh {
 			float outerX = outer * c;
 			float outerY = outer * s;
 			if (i > 0) {
-				this.surfaceQuad(w, prevInnerX, prevInnerY, prevOuterX, prevOuterY, outerX, outerY, innerX, innerY, color, 0.03F);
+				this.surfaceQuad(w, prevInnerX, prevInnerY, prevOuterX, prevOuterY, outerX, outerY, innerX, innerY, color, 0.045F);
 			}
 			prevInnerX = innerX;
 			prevInnerY = innerY;
 			prevOuterX = outerX;
 			prevOuterY = outerY;
 		}
-		this.surfaceDisc(w, 0.0F, 0.0F, bandHalf * 1.25F, color, 0.03F, 10);
+		this.surfaceDisc(w, 0.0F, 0.0F, bandHalf * 1.25F, color, 0.045F, 10);
 	}
 
 	/** Height of the dome at distance {@code r} from the eye centre. */

@@ -3,7 +3,6 @@ package com.nottorzz.eyeball.client.anim;
 import com.nottorzz.eyeball.Expression;
 import com.nottorzz.eyeball.client.config.EyeBallConfig;
 import java.util.UUID;
-import net.minecraft.util.Mth;
 
 /**
  * All animation state for one face. Combines the separate systems ({@link EyeAnimator},
@@ -209,21 +208,7 @@ public final class FaceState {
 		pose.headNod = this.headNod.get(partialTick);
 		pose.time = (this.age + partialTick) * DT;
 		pose.talking = this.isTalking(config);
-		pose.mouthTremble = this.reaction.active() ? 1.0F : 0.0F;
 		return pose;
 	}
 
-	/** Age in ticks (for tests). */
-	public int age() {
-		return this.age;
-	}
-
-	/** For tests and the preview: the remaining reaction progress. */
-	public float reactionProgress() {
-		return this.reaction.progress(0.0F);
-	}
-
-	static float clampUnit(float value) {
-		return Mth.clamp(value, 0.0F, 1.0F);
-	}
 }

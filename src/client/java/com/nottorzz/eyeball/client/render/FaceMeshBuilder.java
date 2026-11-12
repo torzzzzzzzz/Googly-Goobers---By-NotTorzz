@@ -14,13 +14,23 @@ public final class FaceMeshBuilder {
 	private static final MouthMesh MOUTH = new MouthMesh();
 	private static final StarMesh STAR = new StarMesh();
 
-	/** Quads emitted by the last {@link #build} call (for the performance test). */
+	/** Statistics for the performance test. */
 	private static int lastQuadCount;
+	private static long builtFaces;
+	private static long buildNanos;
 
 	private FaceMeshBuilder() {
 	}
 
 	public static void build(MeshWriter w, FaceRenderData data, FaceAnchor anchor) {
+		long start = System.nanoTime();
+		buildFace(w, data, anchor);
+		lastQuadCount = w.quadCount();
+		builtFaces++;
+		buildNanos += System.nanoTime() - start;
+	}
+
+	private static void buildFace(MeshWriter w, FaceRenderData data, FaceAnchor anchor) {
 		FacePose pose = data.pose;
 		int segments = data.roundSegments();
 		boolean googlyStyle = data.googly;
@@ -52,7 +62,7 @@ public final class FaceMeshBuilder {
 			EYE.pupilY = pose.pupilY[i];
 			EYE.pupilFraction = 0.46F * data.pupilSize * pose.pupilScale * (googlyStyle ? 1.0F : 1.08F);
 			EYE.spiral = pose.spiral;
-			EYE.spiralAngle = pose.spiralAngle * (i == 0 ? 1.0F : 1.0F);
+			EYE.spiralAngle = pose.spiralAngle;
 			EYE.spiralGrow = pose.spiralGrow;
 			EYE.elmoStyle = !googlyStyle;
 			EYE.build(w, segments);
@@ -63,8 +73,11 @@ public final class FaceMeshBuilder {
 			for (int i = 0; i < 2; i++) {
 				float side = i == 0 ? -1.0F : 1.0F;
 				float lift = pose.browLift[i];
-				float length = anchor.browLength() * data.browSize * (0.85F + 0.15F * eyeSize);
-				float thickness = anchor.browThickness() * data.browSize;
+				// Brows grow when the face gets expressive (surprised, angry, dizzy...).
+				float expressive = Mth.clamp(Math.abs(lift) / 1.4F + Math.abs(pose.browAngle[i]) / 0.5F, 0.0F, 1.0F);
+				float grow = 1.0F + 0.28F * expressive;
+				float length = anchor.browLength() * data.browSize * (0.85F + 0.15F * eyeSize) * grow;
+				float thickness = anchor.browThickness() * data.browSize * (1.0F + 0.35F * expressive);
 				float v = eyeTop[i] + anchor.browGap() * (0.85F + 0.15F * data.browSize) + lift;
 				float u = eyeU[i] + side * 0.2F;
 				float angle = (i == 0 ? -1.0F : 1.0F) * pose.browAngle[i];
@@ -106,10 +119,17 @@ public final class FaceMeshBuilder {
 				float radius = 1.25F * pose.stars * twinkle;
 				STAR.build(w,
 					anchor.starsOrbit() * Mth.cos(orbit), topV + bob, centerW + anchor.starsOrbit() * Mth.sin(orbit),
-					orbit, radius, pose.time * 2.5F + i, 0.5F);
+					orbit, radius, pose.time * 2.5F + i, 0.75F);
 			}
 		}
-		lastQuadCount = w.quadCount();
+	}
+
+	public static long builtFaces() {
+		return builtFaces;
+	}
+
+	public static long buildNanos() {
+		return buildNanos;
 	}
 
 	public static int lastQuadCount() {

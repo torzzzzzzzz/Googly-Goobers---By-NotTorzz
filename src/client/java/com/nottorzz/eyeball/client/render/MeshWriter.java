@@ -22,7 +22,7 @@ public final class MeshWriter {
 	private final int overlay = OverlayTexture.NO_OVERLAY;
 	private final Vector3f position = new Vector3f();
 	private final Vector3f normal = new Vector3f();
-	private int quads;
+	private int vertices;
 
 	public MeshWriter(PoseStack.Pose pose, VertexConsumer buffer, int light) {
 		this.pose = pose;
@@ -36,6 +36,7 @@ public final class MeshWriter {
 		this.pose.transformNormal(nx, ny, nz, this.normal);
 		this.buffer.addVertex(this.position.x, this.position.y, this.position.z, argb, U, V, this.overlay, this.light,
 			this.normal.x, this.normal.y, this.normal.z);
+		this.vertices++;
 	}
 
 	/** A quad with one flat normal. Vertices should be counter-clockwise seen from the front. */
@@ -46,7 +47,6 @@ public final class MeshWriter {
 		this.vertex(x1, y1, z1, argb, nx, ny, nz);
 		this.vertex(x2, y2, z2, argb, nx, ny, nz);
 		this.vertex(x3, y3, z3, argb, nx, ny, nz);
-		this.quads++;
 	}
 
 	/** A triangle (written as a degenerate quad). */
@@ -57,7 +57,7 @@ public final class MeshWriter {
 
 	/** Quads written so far (for the performance test). */
 	public int quadCount() {
-		return this.quads;
+		return this.vertices / 4;
 	}
 
 	public static int argb(int rgb) {

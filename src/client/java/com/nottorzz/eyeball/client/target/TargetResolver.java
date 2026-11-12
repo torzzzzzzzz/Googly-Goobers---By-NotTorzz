@@ -28,11 +28,16 @@ public final class TargetResolver {
 	}
 
 	public static int resolve(UUID player, boolean isSelf) {
+		return resolve(player, isSelf, true);
+	}
+
+	/** Same as {@link #resolve(UUID, boolean)}, optionally ignoring the player's own override. */
+	public static int resolve(UUID player, boolean isSelf, boolean useOverride) {
 		EyeBallConfig config = ConfigManager.get();
 		if (!config.googlyEyes && !config.elmo) {
 			return Appearance.NONE;
 		}
-		EyeBallConfig.PlayerOverride override = config.override(player);
+		EyeBallConfig.PlayerOverride override = useOverride ? config.override(player) : null;
 		int synced = SyncedLooks.get(player);
 		boolean googlyBase;
 		boolean elmoBase;

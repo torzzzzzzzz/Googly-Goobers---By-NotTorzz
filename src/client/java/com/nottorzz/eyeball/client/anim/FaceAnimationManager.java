@@ -91,9 +91,7 @@ public final class FaceAnimationManager {
 		in.headYaw = player.getYHeadRot();
 		in.headYawRelative = Mth.wrapDegrees(player.getYHeadRot() - player.yBodyRot);
 		in.headPitch = player.getXRot();
-		in.velX = player.getX() - player.xo;
 		in.velY = player.getY() - player.yo;
-		in.velZ = player.getZ() - player.zo;
 		in.onGround = player.onGround();
 		in.walkSpeed = player.walkAnimation.speed();
 		in.walkPosition = player.walkAnimation.position();
@@ -146,7 +144,7 @@ public final class FaceAnimationManager {
 		state.lastRenderTick = this.tick;
 		EyeBallConfig config = ConfigManager.get();
 		renderState.setData(FaceRenderData.KEY,
-			new FaceRenderData(flags, state.pose(partialTick, config), config, renderState.distanceToCameraSq, 0.0F));
+			new FaceRenderData(flags, state.pose(partialTick, config), config, renderState.distanceToCameraSq));
 	}
 
 	public FaceState stateFor(UUID player) {
@@ -225,10 +223,6 @@ public final class FaceAnimationManager {
 
 	public int simulatedLastTick() {
 		return this.simulatedLastTick;
-	}
-
-	public int trackedFaces() {
-		return this.states.size();
 	}
 
 	private boolean isPresent(UUID player) {

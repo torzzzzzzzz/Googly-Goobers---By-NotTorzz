@@ -11,10 +11,8 @@ public final class FaceInputs {
 	public float headYaw;
 	/** Pitch, degrees (positive = looking down). */
 	public float headPitch;
-	/** Movement this tick, blocks. */
-	public double velX;
+	/** Vertical movement this tick, blocks. */
 	public double velY;
-	public double velZ;
 	public boolean onGround = true;
 	public float walkSpeed;
 	public float walkPosition;
@@ -27,9 +25,7 @@ public final class FaceInputs {
 		this.headYawRelative = 0.0F;
 		this.headYaw = 0.0F;
 		this.headPitch = 0.0F;
-		this.velX = 0.0;
 		this.velY = 0.0;
-		this.velZ = 0.0;
 		this.onGround = true;
 		this.walkSpeed = 0.0F;
 		this.walkPosition = 0.0F;

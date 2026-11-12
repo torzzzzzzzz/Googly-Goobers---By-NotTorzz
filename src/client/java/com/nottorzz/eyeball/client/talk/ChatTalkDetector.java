@@ -112,10 +112,4 @@ public final class ChatTalkDetector {
 		String rest = displayed.substring(index + name.length()).replaceFirst("^[>:»\\]\\s-]+", "");
 		return rest.isEmpty() ? displayed : rest;
 	}
-
-	/** Exposed for tests. */
-	public static @Nullable String[] parseSystemChat(String text) {
-		Matcher matcher = SYSTEM_CHAT.matcher(text.strip());
-		return matcher.matches() ? new String[]{matcher.group(1), matcher.group(2)} : null;
-	}
 }

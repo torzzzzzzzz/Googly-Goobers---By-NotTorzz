@@ -49,6 +49,11 @@ public final class EyeBallKeys {
 		}
 	}
 
+	/** The "Open EyeBall Menu" key (G by default). */
+	public static KeyMapping openMenuKey() {
+		return openMenu;
+	}
+
 	public static void tick(Minecraft minecraft) {
 		while (openMenu.consumeClick()) {
 			minecraft.gui.setScreen(new EyeBallConfigScreen(minecraft.gui.screen()));

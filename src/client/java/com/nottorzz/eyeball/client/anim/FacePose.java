@@ -34,8 +34,6 @@ public final class FacePose {
 	public float mouthSmile;
 	public float mouthDShape;
 	public float mouthTeeth;
-	/** Elmo mouth: the open mouth shows a bit more depth. */
-	public float mouthTremble;
 
 	// Head and body motion
 	public float wobbleX;

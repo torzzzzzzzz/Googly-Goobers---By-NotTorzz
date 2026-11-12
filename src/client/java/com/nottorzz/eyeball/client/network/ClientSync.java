@@ -68,9 +68,4 @@ public final class ClientSync {
 			case REACTION -> FaceAnimationManager.INSTANCE.onReaction(payload.player(), 1.0F);
 		}
 	}
-
-	/** Last look sent to the server, or -1 (for the menu / tests). */
-	public static int lastSentLook() {
-		return lastSentLook;
-	}
 }

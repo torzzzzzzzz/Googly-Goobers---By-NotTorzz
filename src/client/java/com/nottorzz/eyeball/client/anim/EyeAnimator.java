@@ -30,7 +30,7 @@ public final class EyeAnimator {
 	private final int bigEye;
 	private final Random random;
 
-	private int blinkCooldown;
+	private float blinkCooldown;
 	private int blinkProgress = -1;
 	private boolean doubleBlinkQueued;
 	private int glanceTimer;
@@ -166,7 +166,9 @@ public final class EyeAnimator {
 				}
 			}
 		} else if (blinkAllowed) {
-			if (--this.blinkCooldown <= 0) {
+			// Faster animation speed = more frequent blinks.
+			this.blinkCooldown -= speed;
+			if (this.blinkCooldown <= 0.0F) {
 				this.startBlink();
 			}
 		}
@@ -176,13 +178,6 @@ public final class EyeAnimator {
 		this.blinkProgress = 0;
 		this.blinkCooldown = Math.round(45 + this.random.nextInt(80));
 		this.doubleBlinkQueued = this.random.nextFloat() < 0.18F;
-	}
-
-	/** Makes the next blink come sooner (scaled by animation speed). */
-	public void scaleBlinkTimer(float speed) {
-		if (speed > 1.0F && this.blinkCooldown > 0) {
-			this.blinkCooldown = Math.max(1, Math.round(this.blinkCooldown / speed));
-		}
 	}
 
 	/** Eye size "pop" impulse (getting hit, sudden surprise). */

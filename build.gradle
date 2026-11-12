@@ -73,9 +73,10 @@ java {
 }
 
 jar {
-	def projectName = project.name
-	inputs.property "projectName", projectName
-	from("LICENSE") {
-		rename { "${it}_$projectName" }
+	manifest {
+		attributes(
+			"Implementation-Title": "EyeBall Mod",
+			"Implementation-Version": project.version
+		)
 	}
 }

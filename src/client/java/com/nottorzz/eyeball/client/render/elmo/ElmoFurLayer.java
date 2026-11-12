@@ -32,8 +32,4 @@ public final class ElmoFurLayer extends RenderLayer<AvatarRenderState, PlayerMod
 				lightCoords, overlay, state.outlineColor);
 		}
 	}
-
-	ElmoModel[] shells() {
-		return this.shells;
-	}
 }

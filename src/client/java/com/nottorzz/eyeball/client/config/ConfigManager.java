@@ -25,7 +25,7 @@ public final class ConfigManager {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 	private static final EyeBallConfig CONFIG = EyeBallConfig.defaults();
 	private static final List<Runnable> LISTENERS = new ArrayList<>();
-	private static Path path = FabricLoader.getInstance().getConfigDir().resolve(FILE_NAME);
+	private static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve(FILE_NAME);
 
 	private ConfigManager() {
 	}
@@ -35,7 +35,7 @@ public final class ConfigManager {
 	}
 
 	public static Path path() {
-		return path;
+		return PATH;
 	}
 
 	/** Runs whenever settings change (used to share your look with the server). */
@@ -44,7 +44,7 @@ public final class ConfigManager {
 	}
 
 	public static void load() {
-		EyeBallConfig loaded = readFrom(path);
+		EyeBallConfig loaded = readFrom(PATH);
 		if (loaded == null) {
 			CONFIG.copyFrom(EyeBallConfig.defaults());
 			save();
@@ -79,18 +79,18 @@ public final class ConfigManager {
 	public static void save() {
 		CONFIG.sanitize();
 		try {
-			Files.createDirectories(path.getParent());
-			Path tmp = path.resolveSibling(FILE_NAME + ".tmp");
+			Files.createDirectories(PATH.getParent());
+			Path tmp = PATH.resolveSibling(FILE_NAME + ".tmp");
 			try (Writer writer = Files.newBufferedWriter(tmp, StandardCharsets.UTF_8)) {
 				GSON.toJson(CONFIG, writer);
 			}
 			try {
-				Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+				Files.move(tmp, PATH, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 			} catch (AtomicMoveNotSupportedException e) {
-				Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING);
+				Files.move(tmp, PATH, StandardCopyOption.REPLACE_EXISTING);
 			}
 		} catch (IOException e) {
-			EyeBallMod.LOGGER.error("Could not save EyeBall settings to {}", path, e);
+			EyeBallMod.LOGGER.error("Could not save EyeBall settings to {}", PATH, e);
 		}
 	}
 
@@ -104,10 +104,5 @@ public final class ConfigManager {
 	public static void resetToDefaults() {
 		CONFIG.copyFrom(EyeBallConfig.defaults());
 		notifyChanged();
-	}
-
-	/** For tests: point the manager at another file. */
-	public static void setPathForTesting(Path newPath) {
-		path = newPath;
 	}
 }

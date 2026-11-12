@@ -125,7 +125,7 @@ public final class EyeBallServer {
 	}
 
 	/** Sends one player's current look to every modded player (including that player). */
-	static void broadcastLook(MinecraftServer server, UUID player) {
+	public static void broadcastLook(MinecraftServer server, UUID player) {
 		AppearanceSyncPayload payload = new AppearanceSyncPayload(false,
 			List.of(new AppearanceSyncPayload.Entry(player, (byte) syncFlags(player))));
 		for (ServerPlayer online : PlayerLookup.all(server)) {
@@ -157,7 +157,7 @@ public final class EyeBallServer {
 	 *
 	 * @param includeSubject also send it to the subject (used for command-triggered events)
 	 */
-	static int relay(ServerPlayer subject, FaceEventKind kind, Expression expression, int ticks, boolean includeSubject) {
+	public static int relay(ServerPlayer subject, FaceEventKind kind, Expression expression, int ticks, boolean includeSubject) {
 		PlayerFaceEventPayload out = new PlayerFaceEventPayload(subject.getUUID(), (byte) kind.ordinal(),
 			(byte) expression.id, (short) Math.clamp(ticks, 1, MAX_EVENT_TICKS));
 		int sent = 0;

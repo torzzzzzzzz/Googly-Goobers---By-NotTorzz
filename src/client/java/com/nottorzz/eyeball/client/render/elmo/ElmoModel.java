@@ -26,7 +26,7 @@ public final class ElmoModel extends PlayerModel {
 	public static final int TEXTURE_WIDTH = 128;
 	public static final int TEXTURE_HEIGHT = 64;
 	public static final ModelLayerLocation BASE_LAYER = new ModelLayerLocation(EyeBallMod.id("elmo"), "main");
-	public static final float[] FUR_DILATION = {0.42F, 0.84F, 1.26F};
+	public static final float[] FUR_DILATION = {0.32F, 0.64F, 0.96F};
 	public static final ModelLayerLocation[] FUR_LAYERS = {
 		new ModelLayerLocation(EyeBallMod.id("elmo"), "fur_1"),
 		new ModelLayerLocation(EyeBallMod.id("elmo"), "fur_2"),
