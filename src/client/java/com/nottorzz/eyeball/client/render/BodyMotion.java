@@ -32,7 +32,7 @@ public final class BodyMotion {
 			poseStack.translate(0.0F, step * Math.min(state.walkAnimationSpeed, 1.0F) * 0.085F, 0.0F);
 		}
 		if (pose.leanX != 0.0F || pose.leanZ != 0.0F) {
-			poseStack.rotate(new Quaternionf().rotateX(pose.leanX).rotateZ(pose.leanZ));
+			poseStack.last().rotate(new Quaternionf().rotateX(pose.leanX).rotateZ(pose.leanZ));
 		}
 	}
 

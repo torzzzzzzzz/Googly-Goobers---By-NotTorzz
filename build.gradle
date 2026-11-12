@@ -2,6 +2,34 @@ plugins {
 	id 'net.fabricmc.fabric-loom' version "${loom_version}"
 }
 
+// ----------------------------------------------------------------------------------------------
+// Minecraft version selection
+//
+//   ./gradlew build              -> Minecraft 26.3 (default)  -> build/libs/eyeball-1.0.0.jar
+//   ./gradlew build -Pmc=26.2    -> Minecraft 26.2            -> build/mc26.2/libs/eyeball-1.0.0-mc26.2.jar
+//
+// Each supported version has versions/<mc>.properties (Minecraft, Fabric API and Mod Menu
+// versions). Code that differs between versions lives in src/<sourceSet>/java-mc<mc>/ next to
+// the shared sources; only the folder for the selected version is compiled.
+// ----------------------------------------------------------------------------------------------
+def defaultTarget = "26.3"
+def mcTarget = (findProperty("mc") ?: defaultTarget).toString()
+def versionFile = file("versions/${mcTarget}.properties")
+if (!versionFile.isFile()) {
+	def known = file("versions").list().findAll { it.endsWith(".properties") }.collect { it - ".properties" }.sort()
+	throw new GradleException("Unsupported Minecraft version '${mcTarget}'. Supported: ${known.join(', ')}")
+}
+def mcProps = new Properties()
+versionFile.withInputStream { mcProps.load(it) }
+mcProps.each { key, value -> project.ext.set(key.toString(), value.toString()) }
+def isDefaultTarget = mcTarget == defaultTarget
+def modVersion = isDefaultTarget ? project.mod_version : "${project.mod_version}+mc${mcTarget}"
+if (!isDefaultTarget) {
+	// Keep every Minecraft version's classes, jars and test runs apart.
+	layout.buildDirectory = layout.projectDirectory.dir("build/mc${mcTarget}")
+}
+logger.lifecycle("EyeBall: building for Minecraft ${project.minecraft_version} (Fabric API ${project.fabric_api_version})")
+
 version = project.mod_version
 group = project.maven_group
 
@@ -24,6 +52,16 @@ loom {
 			sourceSet sourceSets.client
 		}
 	}
+
+	// Separate game folders per Minecraft version (worlds can't be opened by older versions).
+	runs {
+		client {
+			runDir = isDefaultTarget ? "run" : "run/mc${mcTarget}"
+		}
+		server {
+			runDir = isDefaultTarget ? "run" : "run/mc${mcTarget}"
+		}
+	}
 }
 
 fabricApi {
@@ -41,6 +79,14 @@ fabricApi {
 	}
 }
 
+// Version-specific source folders (only the selected Minecraft version's folder is compiled).
+["main", "client", "gametest"].each { setName ->
+	def versionDir = file("src/${setName}/java-mc${mcTarget}")
+	if (versionDir.isDirectory()) {
+		sourceSets.getByName(setName).java.srcDir(versionDir)
+	}
+}
+
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
@@ -51,9 +97,7 @@ dependencies {
 	// Simple Voice Chat: real voice-activity lip sync when Simple Voice Chat is installed.
 	compileOnly "de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}"
 	clientCompileOnly "de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}"
-}
 
-dependencies {
 	// Mods placed next to the built jar when testing it in a production (non-development) environment.
 	productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 }
@@ -84,10 +128,10 @@ tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.Client
 }
 
 processResources {
-	def version = project.version
-	inputs.property "version", version
+	def expansions = [version: modVersion, minecraft_dependency: project.minecraft_dependency]
+	inputs.properties expansions
 	filesMatching("fabric.mod.json") {
-		expand "version": version
+		expand expansions
 	}
 }
 
@@ -106,7 +150,13 @@ jar {
 	manifest {
 		attributes(
 			"Implementation-Title": "EyeBall Mod",
-			"Implementation-Version": project.version
+			"Implementation-Version": modVersion,
+			"EyeBall-Minecraft-Version": project.minecraft_version
 		)
 	}
+}
+
+if (!isDefaultTarget) {
+	tasks.named("jar") { archiveClassifier = "mc${mcTarget}" }
+	tasks.named("sourcesJar") { archiveClassifier = "mc${mcTarget}-sources" }
 }

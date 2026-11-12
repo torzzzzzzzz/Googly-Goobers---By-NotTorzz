@@ -1,6 +1,7 @@
 package com.nottorzz.eyeball.client.render.elmo;
 
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.nottorzz.eyeball.client.compat.RenderCompat;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.LivingEntityRenderer;
@@ -28,7 +29,7 @@ public final class ElmoFurLayer extends RenderLayer<AvatarRenderState, PlayerMod
 		}
 		int overlay = LivingEntityRenderer.getOverlayCoords(state, 0.0F);
 		for (int i = 0; i < this.shells.length; i++) {
-			collector.submitModel(this.shells[i], state, poseStack, RenderTypes.entityCutout(ElmoRenderer.FUR_TEXTURES[i]),
+			RenderCompat.submitModel(collector, this.shells[i], state, poseStack, RenderTypes.entityCutout(ElmoRenderer.FUR_TEXTURES[i]),
 				lightCoords, overlay, state.outlineColor);
 		}
 	}

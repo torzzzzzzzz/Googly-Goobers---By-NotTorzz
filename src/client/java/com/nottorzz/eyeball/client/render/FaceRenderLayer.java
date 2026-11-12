@@ -1,7 +1,6 @@
 package com.nottorzz.eyeball.client.render;
 
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
 import com.nottorzz.eyeball.EyeBallMod;
 import net.minecraft.client.model.player.PlayerModel;
 import net.minecraft.client.renderer.SubmitNodeCollector;
@@ -12,6 +11,7 @@ import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
+import org.joml.Quaternionf;
 
 /**
  * Draws the cartoon face on a player model. Attached to every player renderer (wide and slim arms)
@@ -54,7 +54,8 @@ public final class FaceRenderLayer extends RenderLayer<AvatarRenderState, Player
 		poseStack.scale(1.0F / 16.0F, 1.0F / 16.0F, 1.0F / 16.0F);
 		poseStack.translate(0.0F, anchor.headCenterY(), anchor.frontZ() - forward);
 		// Model space -> face space: u = +x, v = up, w = out of the face.
-		poseStack.rotate(Axis.XP, Mth.PI);
+		// (Pose.rotate is used directly because it exists in every supported Minecraft version.)
+		poseStack.last().rotate(new Quaternionf().rotateX(Mth.PI));
 		if (!data.elmo && data.characterSize != 1.0F) {
 			poseStack.scale(data.characterSize, data.characterSize, data.characterSize);
 		}
