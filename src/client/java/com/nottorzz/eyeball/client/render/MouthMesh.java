@@ -5,25 +5,36 @@ import net.minecraft.util.Mth;
 /**
  * A parametric cartoon mouth in face space. One continuous shape covers every expression:
  * <ul>
- *     <li>{@code open} 0 = closed line, 1 = fully open</li>
+ *     <li>the height: 0 = closed line, up to a huge screaming oval</li>
  *     <li>{@code smile} curls the corners up (smile) or down (frown)</li>
  *     <li>{@code dShape} 0 = round "O", 1 = flat-topped "D" (laughing / excited)</li>
  *     <li>{@code teeth} shows the top teeth, and above 0.75 the bottom teeth too (angry)</li>
+ *     <li>{@code uvula} the little dangling uvula at the back of a wide-open mouth (screaming)</li>
  * </ul>
  * It has a dark outline, a dark interior, a tongue and a little 3D thickness, so it reads well
  * from a distance and from the side.
+ * <p>
+ * Built in two steps: {@link #shape} computes the outline (so the face layout can keep the mouth on
+ * the face and move the eyes out of its way), then {@link #draw} emits the geometry.
  */
 public final class MouthMesh {
-	private static final int SEGMENTS = 18;
-	private static final float OUTLINE = 0.3F;
+	public static final int SEGMENTS = 18;
+	public static final float OUTLINE = 0.3F;
+	private static final int UVULA_SEGMENTS = 8;
 
-	private final float[] xs = new float[SEGMENTS + 1];
-	private final float[] top = new float[SEGMENTS + 1];
-	private final float[] bottom = new float[SEGMENTS + 1];
+	final float[] xs = new float[SEGMENTS + 1];
+	final float[] top = new float[SEGMENTS + 1];
+	final float[] bottom = new float[SEGMENTS + 1];
+	private float height;
 
-	public void build(MeshWriter w, float cx, float cy, float width, float maxHeight, float open, float smile,
-					  float dShape, float teeth, float front, float back, boolean elmo) {
-		float h = Mth.clamp(open, 0.0F, 1.0F) * maxHeight;
+	/**
+	 * Computes the mouth outline.
+	 *
+	 * @param height opening in pixels (0 = closed)
+	 */
+	public void shape(float cx, float cy, float width, float height, float smile, float dShape, boolean elmo) {
+		float h = Math.max(0.0F, height);
+		this.height = h;
 		float topShare = Mth.lerp(dShape, 0.5F, 0.12F);
 		float minHalf = elmo ? 0.25F : 0.2F;
 		for (int i = 0; i <= SEGMENTS; i++) {
@@ -43,11 +54,45 @@ public final class MouthMesh {
 			this.top[i] = cy + t;
 			this.bottom[i] = cy + b;
 		}
+	}
 
+	/** Moves the whole mouth up (positive) or down. */
+	public void shift(float dv) {
+		for (int i = 0; i <= SEGMENTS; i++) {
+			this.top[i] += dv;
+			this.bottom[i] += dv;
+		}
+	}
+
+	/** Lowest point of the mouth including its outline. */
+	public float lowest() {
+		float min = Float.POSITIVE_INFINITY;
+		for (float b : this.bottom) {
+			min = Math.min(min, b);
+		}
+		return min - OUTLINE;
+	}
+
+	/** Highest point of the mouth including its outline. */
+	public float highest() {
+		float max = Float.NEGATIVE_INFINITY;
+		for (float t : this.top) {
+			max = Math.max(max, t);
+		}
+		return max + OUTLINE;
+	}
+
+	/** Height of the opening in pixels at the middle of the mouth. */
+	public float openingHeight() {
+		return this.top[SEGMENTS / 2] - this.bottom[SEGMENTS / 2];
+	}
+
+	public void draw(MeshWriter w, float cx, float width, float teeth, float uvula, float front, float back, boolean elmo) {
 		int outline = MeshWriter.argb(elmo ? 0x140405 : 0x2A0D10);
 		int interiorTop = MeshWriter.argb(elmo ? 0x0C0304 : 0x2A060C);
 		int interiorBottom = MeshWriter.argb(elmo ? 0x1E0709 : 0x5C1322);
 		int tongue = MeshWriter.argb(elmo ? 0xB3303D : 0xE36A80);
+		int uvulaColor = MeshWriter.argb(elmo ? 0xC2404E : 0xD9586F);
 		int toothColor = MeshWriter.argb(0xF6F2E8);
 
 		// 3D thickness: walls from the outline back to the face.
@@ -84,7 +129,7 @@ public final class MouthMesh {
 			w.vertex(this.xs[i], this.top[i], wInterior, interiorTop, 0.0F, 0.0F, 1.0F);
 		}
 
-		if (h < 0.3F) {
+		if (this.height < 0.3F) {
 			return;
 		}
 		// Tongue: a hump resting on the bottom of the mouth.
@@ -98,12 +143,16 @@ public final class MouthMesh {
 			if (k0 <= 0.0F && k1 <= 0.0F) {
 				continue;
 			}
-			float h0 = (this.top[i] - this.bottom[i]) * 0.42F * k0;
-			float h1 = (this.top[i + 1] - this.bottom[i + 1]) * 0.42F * k1;
+			float h0 = Math.min((this.top[i] - this.bottom[i]) * 0.42F, 1.8F) * k0;
+			float h1 = Math.min((this.top[i + 1] - this.bottom[i + 1]) * 0.42F, 1.8F) * k1;
 			float b0 = this.bottom[i] + 0.02F;
 			float b1 = this.bottom[i + 1] + 0.02F;
 			w.quad(this.xs[i], b0, wTongue, this.xs[i + 1], b1, wTongue,
 				this.xs[i + 1], b1 + h1, wTongue, this.xs[i], b0 + h0, wTongue, tongue, 0.0F, 0.0F, 1.0F);
+		}
+
+		if (uvula > 0.02F) {
+			this.drawUvula(w, cx, uvula, front + 0.045F, uvulaColor);
 		}
 
 		if (teeth < 0.05F) {
@@ -133,6 +182,30 @@ public final class MouthMesh {
 				w.quad(this.xs[i], this.bottom[i] + 0.01F, wTeeth, this.xs[i + 1], this.bottom[i + 1] + 0.01F, wTeeth,
 					this.xs[i + 1], this.bottom[i + 1] + u1, wTeeth, this.xs[i], this.bottom[i] + u0, wTeeth, toothColor, 0.0F, 0.0F, 1.0F);
 			}
+		}
+	}
+
+	/** A little teardrop hanging from the middle of the top lip. */
+	private void drawUvula(MeshWriter w, float cx, float amount, float wDepth, int color) {
+		int mid = SEGMENTS / 2;
+		float top = this.top[mid] - 0.02F;
+		float span = this.top[mid] - this.bottom[mid];
+		float length = Math.min(span * 0.3F, 1.35F) * amount;
+		float radius = Math.min(0.42F, span * 0.1F) * (0.5F + 0.5F * amount);
+		if (length < radius * 1.2F) {
+			return;
+		}
+		float bulbY = top - length + radius;
+		float stem = radius * 0.45F;
+		w.quad(cx - stem, bulbY, wDepth, cx + stem, bulbY, wDepth, cx + stem * 1.25F, top, wDepth, cx - stem * 1.25F, top, wDepth,
+			color, 0.0F, 0.0F, 1.0F);
+		for (int k = 0; k < UVULA_SEGMENTS; k++) {
+			float a0 = Mth.TWO_PI * k / UVULA_SEGMENTS;
+			float a1 = Mth.TWO_PI * (k + 1) / UVULA_SEGMENTS;
+			w.triangle(cx, bulbY, wDepth,
+				cx + Mth.cos(a0) * radius, bulbY + Mth.sin(a0) * radius, wDepth,
+				cx + Mth.cos(a1) * radius, bulbY + Mth.sin(a1) * radius, wDepth,
+				color, 0.0F, 0.0F, 1.0F);
 		}
 	}
 }

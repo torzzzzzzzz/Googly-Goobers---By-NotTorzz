@@ -13,7 +13,8 @@ import org.joml.Quaternionf;
  * <ul>
  *     <li>hit stagger: the whole body tips back and sways, pivoting at the feet,</li>
  *     <li>Elmo bounces a little with every step,</li>
- *     <li>head wobble after a hit, and head nods while talking.</li>
+ *     <li>head wobble after a hit, head nods and a lazy sway while talking, and a fast head shake
+ *     (with the head thrown back) while screaming.</li>
  * </ul>
  * Applied to the pose stack / model parts (never to the entity), so it is purely visual.
  */
@@ -41,18 +42,18 @@ public final class BodyMotion {
 		FacePose pose = data.pose;
 		float nod = pose.headNod * (data.elmo ? 1.7F : 1.0F);
 		model.head.xRot += pose.wobbleX + nod;
-		model.head.yRot += pose.wobbleY;
-		model.head.zRot += pose.wobbleZ;
+		model.head.yRot += pose.wobbleY + pose.headShake;
+		model.head.zRot += pose.wobbleZ + pose.headRoll;
 		if (data.elmo && data.characterSize != 1.0F) {
 			model.head.xScale = data.characterSize;
 			model.head.yScale = data.characterSize;
 			model.head.zScale = data.characterSize;
 		}
-		if (data.elmo && pose.talking) {
-			// Elmo talks with his arms a little.
-			float wave = Mth.sin(pose.time * 7.0F) * 0.12F;
-			model.rightArm.zRot += wave;
-			model.leftArm.zRot -= wave;
+		if (data.elmo && (pose.talking || pose.scream > 0.01F)) {
+			// Elmo talks with his arms a little (and flails them when he screams).
+			float wave = Mth.sin(pose.time * 7.0F) * 0.12F * (1.0F - pose.scream);
+			model.rightArm.zRot += wave + pose.scream * (0.55F + Mth.sin(pose.time * 31.0F) * 0.12F);
+			model.leftArm.zRot -= wave + pose.scream * (0.55F + Mth.sin(pose.time * 29.0F) * 0.12F);
 		}
 	}
 

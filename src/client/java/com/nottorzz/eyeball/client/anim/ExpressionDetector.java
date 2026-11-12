@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
  * <ul>
  *     <li>"hahaha", "lol", "xD" ... laughing</li>
  *     <li>"wow", "omg", "?!" ... surprised</li>
+ *     <li>"AAAAHHH", "NOOOOO", "eeeek", screamed ALL CAPS with "!!" ... screaming</li>
  *     <li>"grr", "&gt;:(" ... angry</li>
  *     <li>ALL CAPS ... wide-open shouting</li>
  *     <li>"yay!", "let's go" ... excited</li>
@@ -21,10 +22,15 @@ import java.util.regex.Pattern;
 public final class ExpressionDetector {
 	private static final Pattern LAUGH = Pattern.compile(
 		"(h[ae]){2,}|\\b(lol+|lmao+|lmfao|rofl|kek|xd+|hehe+)\\b|:d\\b|xd|😂|🤣|😆");
+	/** Stretched-out yells: "aaaahhh", "ahhhh", "noooo", "eeeek", "heeeelp", "wahhhh" (shouted "HELP!!" counts too, see below). */
+	private static final Pattern SCREAM = Pattern.compile(
+		"\\b(a{3,}h*|a+h{3,}|no{4,}|e{3,}k*|he{3,}l+p+|wa+h{3,}|ya{3,}h*)\\b|😱|🙀");
+	/** Letters held for a while ("WAAAIT", "NOOO") - in ALL CAPS that is a scream. */
+	private static final Pattern STRETCHED = Pattern.compile("(\\p{L})\\1{2,}");
 	private static final Pattern ANGRY = Pattern.compile(
 		"\\b(grr+|angry|mad|hate|stupid|ugh+|argh+|rage|annoying)\\b|>:\\(|>:\\[|😠|😡|🤬");
 	private static final Pattern SURPRISED = Pattern.compile(
-		"\\b(wow+|whoa+|woah+|omg+|no way|wa{2,}i+t+|wha{2,}t+|oh my|holy)\\b|\\?!|!\\?|:o\\b|:0\\b|😮|😲|😱");
+		"\\b(wow+|whoa+|woah+|omg+|no way|wa{2,}i+t+|wha{2,}t+|oh my|holy)\\b|\\?!|!\\?|:o\\b|:0\\b|😮|😲");
 	private static final Pattern EXCITED = Pattern.compile(
 		"\\b(yay+|yes+|let'?s go+|lets go+|awesome|amazing|pog+|poggers|gg+|woo+|yippee+|epic)\\b|🎉|🤩");
 	private static final Pattern CONFUSED = Pattern.compile(
@@ -44,10 +50,14 @@ public final class ExpressionDetector {
 		if (LAUGH.matcher(lower).find()) {
 			return Expression.LAUGHING;
 		}
+		boolean shouting = isShouting(text);
+		if (SCREAM.matcher(lower).find() || shouting && (text.contains("!!") || STRETCHED.matcher(text).find())) {
+			return Expression.SCREAMING;
+		}
 		if (ANGRY.matcher(lower).find()) {
 			return Expression.ANGRY;
 		}
-		if (isShouting(text)) {
+		if (shouting) {
 			return text.contains("!") && text.length() > 8 ? Expression.ANGRY : Expression.WIDE_OPEN;
 		}
 		if (SURPRISED.matcher(lower).find()) {

@@ -5,8 +5,8 @@ plugins {
 // ----------------------------------------------------------------------------------------------
 // Minecraft version selection
 //
-//   ./gradlew build              -> Minecraft 26.3 (default)  -> build/libs/eyeball-1.0.0.jar
-//   ./gradlew build -Pmc=26.2    -> Minecraft 26.2            -> build/mc26.2/libs/eyeball-1.0.0-mc26.2.jar
+//   ./gradlew build              -> Minecraft 26.3 (default)  -> build/libs/eyeball-1.1.0.jar
+//   ./gradlew build -Pmc=26.2    -> Minecraft 26.2            -> build/mc26.2/libs/eyeball-1.1.0-mc26.2.jar
 //
 // Each supported version has versions/<mc>.properties (Minecraft, Fabric API and Mod Menu
 // versions). Code that differs between versions lives in src/<sourceSet>/java-mc<mc>/ next to

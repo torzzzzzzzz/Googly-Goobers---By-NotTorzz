@@ -10,12 +10,17 @@ import net.minecraft.util.Mth;
  *     behind head turns, drop when landing and bounce off the rim of the eye. Each eye has its own
  *     spring "personality", so they move independently and slightly out of sync.</li>
  *     <li>Random blinking (sometimes a double blink), happy squinting.</li>
- *     <li>Eye size pops (talking, surprise, getting hit) and a bounce when walking, jumping and landing.</li>
+ *     <li>Eye size: the eyes swell up while talking (driven by {@link FaceState}), pop when talking
+ *     starts, when surprised and when hit, and bounce when walking, jumping and landing. The size
+ *     target itself moves smoothly, so the eyes grow with a springy pop and shrink back without
+ *     snapping.</li>
  * </ul>
  */
 public final class EyeAnimator {
 	public static final int BLINK_TICKS = 4;
 	private static final float RIM_RESTITUTION = 0.45F;
+	/** Upper limit for the eye size multiplier, even with every slider maxed out. */
+	public static final float MAX_SCALE = 2.8F;
 
 	private final Spring[] pupilX = {new Spring(0.0F), new Spring(0.0F)};
 	private final Spring[] pupilY = {new Spring(-0.1F), new Spring(-0.1F)};
@@ -56,13 +61,22 @@ public final class EyeAnimator {
 		this.glanceTimer = 30 + this.random.nextInt(60);
 	}
 
+	/** The eye that is naturally a little bigger; it is drawn in front when big eyes overlap. */
+	public int bigEye() {
+		return this.bigEye;
+	}
+
 	/** Size multiplier for eye {@code i} from the per-player asymmetry. */
 	public float asymmetryScale(int i) {
 		return i == this.bigEye ? 1.0F + this.asymmetry : 1.0F - this.asymmetry * 0.45F;
 	}
 
-	public void tick(FaceInputs in, ExpressionProfile profile, float intensity, float eyePop, boolean eyeMovement,
-					 boolean blinkAllowed, float speed, float dt) {
+	/**
+	 * @param eyeGrowth    extra eye size on top of the expression (talking, screaming, hit pop), 0 = none
+	 * @param sizeDamping  damping of the eye-size spring (low = bouncy pops, high = gentle return)
+	 */
+	public void tick(FaceInputs in, ExpressionProfile profile, float intensity, float eyeGrowth, float sizeDamping,
+					 boolean eyeMovement, boolean blinkAllowed, float speed, float dt) {
 		for (int i = 0; i < 2; i++) {
 			this.pupilX[i].beginTick();
 			this.pupilY[i].beginTick();
@@ -135,12 +149,12 @@ public final class EyeAnimator {
 		}
 
 		// --- Sizes ---
-		float scaleTarget = ExpressionProfile.scaled(1.0F, profile.eyeScale(), intensity) + eyePop;
+		float scaleTarget = ExpressionProfile.scaled(1.0F, profile.eyeScale(), intensity) + eyeGrowth;
 		for (int i = 0; i < 2; i++) {
 			if (landed) {
 				this.eyeScale[i].kick(-landingImpact * 2.6F);
 			}
-			this.eyeScale[i].step(scaleTarget * this.asymmetryScale(i), 3.6F * speed, 0.32F, dt);
+			this.eyeScale[i].step(scaleTarget * this.asymmetryScale(i), 3.8F * speed, sizeDamping, dt);
 		}
 		this.pupilScale.step(ExpressionProfile.scaled(1.0F, profile.pupilScale(), intensity), 4.0F * speed, 0.5F, dt);
 		this.squint.step(Mth.clamp(profile.squint() * intensity, 0.0F, 0.85F), 5.0F * speed, 0.7F, dt);
@@ -180,6 +194,12 @@ public final class EyeAnimator {
 		this.doubleBlinkQueued = this.random.nextFloat() < 0.18F;
 	}
 
+	/** Stops a blink in progress (when blinking is switched off). */
+	public void cancelBlink() {
+		this.blinkProgress = -1;
+		this.doubleBlinkQueued = false;
+	}
+
 	/** Eye size "pop" impulse (getting hit, sudden surprise). */
 	public void pop(float strength) {
 		for (Spring spring : this.eyeScale) {
@@ -211,8 +231,9 @@ public final class EyeAnimator {
 	public void fill(FacePose pose, float partialTick, float extraClosedness) {
 		float closed = Math.max(this.blinkClosedness(partialTick), extraClosedness);
 		float squintAmount = this.squint.get(partialTick);
+		pose.frontEye = this.bigEye;
 		for (int i = 0; i < 2; i++) {
-			pose.eyeScale[i] = Math.max(0.2F, this.eyeScale[i].get(partialTick));
+			pose.eyeScale[i] = Mth.clamp(this.eyeScale[i].get(partialTick), 0.2F, MAX_SCALE);
 			pose.eyeOpen[i] = Math.max(0.06F, (1.0F - 0.55F * squintAmount) * (1.0F - 0.93F * closed));
 			pose.pupilX[i] = this.pupilX[i].get(partialTick);
 			pose.pupilY[i] = this.pupilY[i].get(partialTick);

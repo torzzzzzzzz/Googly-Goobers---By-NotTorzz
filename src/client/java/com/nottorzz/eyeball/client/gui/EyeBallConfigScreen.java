@@ -81,11 +81,12 @@ public class EyeBallConfigScreen extends Screen {
 			int px = MARGIN * 2 + listWidth;
 			int buttonHeight = 16;
 			int gap = 3;
-			int gridHeight = buttonHeight * 3 + gap * 2;
+			PreviewController.Mode[] modes = PreviewController.Mode.values();
+			int rows = (modes.length + 2) / 3;
+			int gridHeight = buttonHeight * rows + gap * (rows - 1);
 			int panelHeight = bodyBottom - bodyTop - gridHeight - 6;
 			this.previewPanel = this.addRenderableWidget(new PreviewPanel(px, bodyTop, previewWidth, panelHeight, this.preview));
 			int buttonWidth = (previewWidth - gap * 2) / 3;
-			PreviewController.Mode[] modes = PreviewController.Mode.values();
 			for (int i = 0; i < modes.length; i++) {
 				int bx = px + (i % 3) * (buttonWidth + gap);
 				int by = bodyTop + panelHeight + 6 + (i / 3) * (buttonHeight + gap);
@@ -149,8 +150,16 @@ public class EyeBallConfigScreen extends Screen {
 			() -> c.eyeSpacing, v -> c.eyeSpacing = (float) v, EyeBallConfigScreen::times));
 		l.addWidget(this.slider("character_size", EyeBallConfig.CHARACTER_SIZE_MIN, EyeBallConfig.CHARACTER_SIZE_MAX, 0.05,
 			() -> c.characterSize, v -> c.characterSize = (float) v, EyeBallConfigScreen::times));
+
+		l.addSection(Component.translatable("eyeball.menu.section.talking_style"));
+		l.addWidget(this.slider("eye_enlargement", EyeBallConfig.EYE_ENLARGEMENT_MIN, EyeBallConfig.EYE_ENLARGEMENT_MAX, 0.05,
+			() -> c.eyeEnlargement, v -> c.eyeEnlargement = (float) v, EyeBallConfigScreen::times));
+		l.addWidget(this.slider("mouth_opening", EyeBallConfig.MOUTH_OPENING_MIN, EyeBallConfig.MOUTH_OPENING_MAX, 0.05,
+			() -> c.mouthOpening, v -> c.mouthOpening = (float) v, EyeBallConfigScreen::times));
 		l.addWidget(this.slider("animation_speed", EyeBallConfig.ANIM_SPEED_MIN, EyeBallConfig.ANIM_SPEED_MAX, 0.05,
 			() -> c.animationSpeed, v -> c.animationSpeed = (float) v, EyeBallConfigScreen::times));
+		l.addWidget(this.slider("exaggeration", EyeBallConfig.EXAGGERATION_MIN, EyeBallConfig.EXAGGERATION_MAX, 0.05,
+			() -> c.exaggeration, v -> c.exaggeration = (float) v, EyeBallConfigScreen::times));
 		l.addWidget(this.slider("expression_intensity", EyeBallConfig.EXPRESSION_INTENSITY_MIN, EyeBallConfig.EXPRESSION_INTENSITY_MAX, 0.05,
 			() -> c.expressionIntensity, v -> c.expressionIntensity = (float) v, EyeBallConfigScreen::times));
 

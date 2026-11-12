@@ -18,7 +18,12 @@ public enum Expression {
 	HAPPY(8),
 	CONFUSED(9),
 	/** Damage reaction (spiral eyes). Not selectable as a normal expression. */
-	DIZZY(10);
+	DIZZY(10),
+	/**
+	 * Cartoon screaming: enormous trembling eyes, a huge oval mouth, eyebrows up and a shaking head.
+	 * Older versions of the mod don't know this id and show a neutral face instead.
+	 */
+	SCREAMING(11);
 
 	private static final Expression[] BY_ID;
 

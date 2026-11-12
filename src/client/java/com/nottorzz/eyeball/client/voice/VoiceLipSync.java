@@ -21,7 +21,9 @@ public final class VoiceLipSync {
 	}
 
 	public static void tick(Minecraft minecraft) {
-		if (!INSTALLED || minecraft.player == null) {
+		// Readings only ever come from our Simple Voice Chat plugin (the in-game tests also feed
+		// recorded loudness through the same path once they mark the plugin active).
+		if (!(INSTALLED || VoiceActivity.isPluginActive()) || minecraft.player == null) {
 			return;
 		}
 		VoiceActivity.forEachActive((speaker, level) -> {

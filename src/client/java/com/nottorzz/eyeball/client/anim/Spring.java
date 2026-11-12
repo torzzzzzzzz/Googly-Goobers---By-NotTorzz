@@ -4,11 +4,16 @@ package com.nottorzz.eyeball.client.anim;
  * A damped spring, stepped once per game tick and interpolated with the partial tick when rendered.
  * This is what makes every facial movement smooth and bouncy instead of snapping between poses.
  * <p>
- * Integrated with semi-implicit Euler in sub-steps, which stays stable for the stiff, wobbly
- * settings used by googly pupils.
+ * Integrated with semi-implicit Euler in sub-steps. The number of sub-steps grows with the spring's
+ * stiffness and damping, so even the stiffest springs at 2x animation speed stay stable (with a
+ * fixed small number of sub-steps a fast, well-damped spring like the mouth blows up).
  */
 public final class Spring {
-	private static final int SUBSTEPS = 4;
+	private static final int MIN_SUBSTEPS = 4;
+	private static final int MAX_SUBSTEPS = 64;
+	/** Largest stable-and-accurate sub-step, as a fraction of the spring's period and damping time. */
+	private static final float MAX_OMEGA_STEP = 0.35F;
+	private static final float MAX_FRICTION_STEP = 0.7F;
 	private static final float TWO_PI = (float) (Math.PI * 2.0);
 
 	private float value;
@@ -42,16 +47,37 @@ public final class Spring {
 		float omega = TWO_PI * frequency;
 		float stiffness = omega * omega;
 		float friction = 2.0F * damping * omega;
-		float h = dt / SUBSTEPS;
-		for (int i = 0; i < SUBSTEPS; i++) {
+		int substeps = (int) Math.ceil(Math.max(dt * omega / MAX_OMEGA_STEP, dt * friction / MAX_FRICTION_STEP));
+		substeps = Math.clamp(substeps, MIN_SUBSTEPS, MAX_SUBSTEPS);
+		float h = dt / substeps;
+		for (int i = 0; i < substeps; i++) {
 			this.velocity += (stiffness * (target - this.value) - friction * this.velocity) * h;
 			this.value += this.velocity * h;
+		}
+		if (!Float.isFinite(this.value) || !Float.isFinite(this.velocity)) {
+			// Never let a bad input break a face for good.
+			this.value = Float.isFinite(target) ? target : this.previous;
+			this.velocity = 0.0F;
+		}
+	}
+
+	/**
+	 * Caps how far the value may have moved since {@link #beginTick} (a speed limit for the few
+	 * cases where even a fast spring should not move faster, e.g. the mouth during a big change).
+	 */
+	public void limitStep(float maxStep) {
+		float moved = this.value - this.previous;
+		if (Math.abs(moved) > maxStep) {
+			this.value = this.previous + Math.copySign(maxStep, moved);
+			this.velocity *= 0.5F;
 		}
 	}
 
 	/** Adds instantaneous velocity (units per second). */
 	public void kick(float impulse) {
-		this.velocity += impulse;
+		if (Float.isFinite(impulse)) {
+			this.velocity += impulse;
+		}
 	}
 
 	public float value() {

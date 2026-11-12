@@ -45,31 +45,57 @@ public record ExpressionProfile(
 	private static final Map<Expression, ExpressionProfile> PROFILES = new EnumMap<>(Expression.class);
 
 	static {
+		// Mouth values are fractions of the face's maximum mouth height (FaceAnchor.mouthHeight).
 		PROFILES.put(Expression.NEUTRAL, NEUTRAL);
 		PROFILES.put(Expression.TALKING, new ExpressionProfile(
-			1.05F, 1.0F, 0.0F, 0.25F, 0.0F, 0.0F, 0.05F, 0.65F, 1.0F, 0.3F, 0.1F, 0.25F, 6.5F, 0.0F));
+			1.05F, 1.0F, 0.0F, 0.3F, 0.0F, 0.0F, 0.05F, 0.92F, 1.05F, 0.3F, 0.1F, 0.3F, 6.5F, 0.0F));
 		PROFILES.put(Expression.SMALL_TALK, new ExpressionProfile(
-			1.0F, 1.0F, 0.0F, 0.15F, 0.0F, 0.0F, 0.0F, 0.32F, 0.7F, 0.25F, 0.0F, 0.0F, 7.5F, 0.0F));
+			1.0F, 1.0F, 0.0F, 0.2F, 0.0F, 0.0F, 0.0F, 0.48F, 0.8F, 0.25F, 0.0F, 0.0F, 7.5F, 0.0F));
 		PROFILES.put(Expression.WIDE_OPEN, new ExpressionProfile(
-			1.15F, 0.85F, 0.0F, 0.9F, -0.1F, 0.0F, 0.4F, 0.6F, 1.35F, 0.05F, 0.25F, 0.5F, 5.0F, 0.0F));
+			1.2F, 0.85F, 0.0F, 1.0F, -0.12F, 0.0F, 0.42F, 0.62F, 1.3F, 0.05F, 0.25F, 0.5F, 5.5F, 0.0F));
 		PROFILES.put(Expression.SURPRISED, new ExpressionProfile(
-			1.3F, 0.68F, 0.0F, 1.4F, -0.22F, 0.0F, 0.55F, 0.3F, 0.62F, 0.0F, 0.0F, 0.0F, 5.0F, 0.08F));
+			1.35F, 0.68F, 0.0F, 1.45F, -0.22F, 0.0F, 0.5F, 0.32F, 0.62F, 0.0F, 0.0F, 0.0F, 5.0F, 0.08F));
 		PROFILES.put(Expression.EXCITED, new ExpressionProfile(
-			1.18F, 1.18F, 0.0F, 0.95F, -0.12F, 0.0F, 0.32F, 0.5F, 1.3F, 0.95F, 0.75F, 0.65F, 7.5F, 0.05F));
+			1.2F, 1.18F, 0.0F, 1.0F, -0.12F, 0.0F, 0.3F, 0.62F, 1.3F, 0.95F, 0.75F, 0.65F, 7.5F, 0.05F));
 		PROFILES.put(Expression.ANGRY, new ExpressionProfile(
-			0.95F, 0.8F, 0.32F, -0.75F, 0.5F, 0.0F, 0.14F, 0.42F, 1.2F, -0.75F, 0.0F, 1.0F, 6.0F, 0.0F));
+			0.95F, 0.8F, 0.32F, -0.8F, 0.5F, 0.0F, 0.14F, 0.52F, 1.2F, -0.75F, 0.0F, 1.0F, 6.0F, 0.0F));
 		PROFILES.put(Expression.LAUGHING, new ExpressionProfile(
-			1.0F, 1.0F, 0.68F, 0.65F, -0.18F, 0.0F, 0.42F, 0.48F, 1.32F, 1.0F, 0.9F, 0.7F, 9.5F, 0.0F));
+			1.0F, 1.0F, 0.68F, 0.7F, -0.18F, 0.0F, 0.38F, 0.55F, 1.32F, 1.0F, 0.9F, 0.7F, 9.5F, 0.0F));
 		PROFILES.put(Expression.HAPPY, new ExpressionProfile(
-			1.04F, 1.05F, 0.22F, 0.45F, -0.12F, 0.0F, 0.04F, 0.4F, 1.12F, 0.85F, 0.3F, 0.2F, 6.5F, 0.0F));
+			1.05F, 1.05F, 0.22F, 0.5F, -0.12F, 0.0F, 0.04F, 0.55F, 1.12F, 0.85F, 0.3F, 0.2F, 6.5F, 0.0F));
 		PROFILES.put(Expression.CONFUSED, new ExpressionProfile(
-			1.04F, 0.92F, 0.0F, 0.3F, 0.15F, 1.0F, 0.04F, 0.35F, 0.72F, -0.3F, 0.0F, 0.0F, 5.0F, 0.3F));
+			1.05F, 0.92F, 0.0F, 0.35F, 0.15F, 1.0F, 0.04F, 0.45F, 0.72F, -0.3F, 0.0F, 0.0F, 5.0F, 0.3F));
 		PROFILES.put(Expression.DIZZY, new ExpressionProfile(
-			1.28F, 1.0F, 0.0F, 1.25F, -0.15F, 0.55F, 0.78F, 0.0F, 0.78F, -0.12F, 0.0F, 0.0F, 0.0F, 0.0F));
+			1.28F, 1.0F, 0.0F, 1.25F, -0.15F, 0.55F, 0.5F, 0.0F, 0.8F, -0.12F, 0.0F, 0.0F, 0.0F, 0.0F));
+		// Screaming: wide eyes with tiny pupils (they also grow a lot, see FaceState), eyebrows way up and
+		// worried, a huge tall oval mouth held wide open with a fast tremble (a mouth base above 1 opens
+		// it past the normal maximum; MouthAnimator eases it off smoothly).
+		PROFILES.put(Expression.SCREAMING, new ExpressionProfile(
+			1.15F, 0.5F, 0.0F, 1.2F, -0.32F, 0.0F, 1.12F, 0.06F, 0.74F, -0.15F, 0.0F, 0.35F, 12.0F, 0.1F));
 	}
 
 	public static ExpressionProfile of(Expression expression) {
 		return PROFILES.getOrDefault(expression, NEUTRAL);
+	}
+
+	/** Blends two profiles (0 = {@code a}, 1 = {@code b}); used to cross-fade between expressions. */
+	public static ExpressionProfile lerp(ExpressionProfile a, ExpressionProfile b, float t) {
+		if (t <= 0.0F) {
+			return a;
+		}
+		if (t >= 1.0F) {
+			return b;
+		}
+		return new ExpressionProfile(
+			mix(a.eyeScale, b.eyeScale, t), mix(a.pupilScale, b.pupilScale, t), mix(a.squint, b.squint, t),
+			mix(a.browLift, b.browLift, t), mix(a.browAngle, b.browAngle, t), mix(a.browAsym, b.browAsym, t),
+			mix(a.mouthBase, b.mouthBase, t), mix(a.talkAmplitude, b.talkAmplitude, t), mix(a.mouthWidth, b.mouthWidth, t),
+			mix(a.smile, b.smile, t), mix(a.dShape, b.dShape, t), mix(a.teeth, b.teeth, t),
+			mix(a.talkRate, b.talkRate, t), mix(a.pupilLift, b.pupilLift, t));
+	}
+
+	private static float mix(float a, float b, float t) {
+		return a + (b - a) * t;
 	}
 
 	/** Moves every value away from neutral by {@code intensity} (0 = neutral, 1 = as designed, 2 = double). */

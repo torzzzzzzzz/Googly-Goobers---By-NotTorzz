@@ -45,6 +45,13 @@ public final class ValueSlider extends AbstractSliderButton {
 		this.updateMessage();
 	}
 
+	/** Moves the slider to a value (as if dragged there) and applies it. */
+	public void setActualValue(double actual) {
+		this.value = Math.clamp((actual - this.min) / (this.max - this.min), 0.0, 1.0);
+		this.applyValue();
+		this.updateMessage();
+	}
+
 	private double actualValue() {
 		double raw = this.min + this.value * (this.max - this.min);
 		return Math.clamp(Math.round(raw / this.step) * this.step, this.min, this.max);

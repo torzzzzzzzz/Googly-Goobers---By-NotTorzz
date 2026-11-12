@@ -6,6 +6,7 @@ import com.mojang.authlib.GameProfile;
 import com.nottorzz.eyeball.Appearance;
 import com.nottorzz.eyeball.Expression;
 import com.nottorzz.eyeball.FaceEventKind;
+import com.nottorzz.eyeball.client.anim.ExpressionDetector;
 import com.nottorzz.eyeball.client.anim.FaceAnimationManager;
 import com.nottorzz.eyeball.client.anim.FacePose;
 import com.nottorzz.eyeball.client.anim.FaceState;
@@ -15,12 +16,15 @@ import com.nottorzz.eyeball.client.gui.EyeBallConfigScreen;
 import com.nottorzz.eyeball.client.gui.PlayerSelectionScreen;
 import com.nottorzz.eyeball.client.gui.PreviewController;
 import com.nottorzz.eyeball.client.gui.widget.ToggleSwitch;
+import com.nottorzz.eyeball.client.gui.widget.ValueSlider;
 import com.nottorzz.eyeball.client.input.EyeBallKeys;
+import com.nottorzz.eyeball.client.render.FaceAnchor;
 import com.nottorzz.eyeball.client.render.FaceMeshBuilder;
 import com.nottorzz.eyeball.client.render.FaceRenderData;
 import com.nottorzz.eyeball.client.render.FaceRenderLayer;
 import com.nottorzz.eyeball.client.render.elmo.ElmoRenderer;
 import com.nottorzz.eyeball.client.target.SyncedLooks;
+import com.nottorzz.eyeball.compat.voice.VoiceActivity;
 import com.nottorzz.eyeball.server.EyeBallServer;
 import com.nottorzz.eyeball.server.ForcedLookStore;
 import java.io.IOException;
@@ -68,6 +72,8 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 
 	private final TestReport report = new TestReport();
 	private ClientGameTestContext ctx;
+	/** Fastest the mouth moves in one tick during ordinary talking (lip flaps), measured by talking(). */
+	private float talkingFlapStep = 2.0F;
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
@@ -108,6 +114,11 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 			this.report.check("spiral speed restored", Math.abs(loaded.spiralSpeed - expected.get("spiralSpeed").getAsFloat()) < 1e-4, "loaded " + loaded.spiralSpeed);
 			this.report.check("Elmo switch restored", loaded.elmo == expected.get("elmo").getAsBoolean(), "loaded " + loaded.elmo);
 			this.report.check("blinking switch restored", loaded.blinking == expected.get("blinking").getAsBoolean(), "loaded " + loaded.blinking);
+			if (expected.has("eyeEnlargement")) {
+				this.report.check("eye enlargement restored", Math.abs(loaded.eyeEnlargement - expected.get("eyeEnlargement").getAsFloat()) < 1e-4, "loaded " + loaded.eyeEnlargement);
+				this.report.check("mouth opening restored", Math.abs(loaded.mouthOpening - expected.get("mouthOpening").getAsFloat()) < 1e-4, "loaded " + loaded.mouthOpening);
+				this.report.check("overall exaggeration restored", Math.abs(loaded.exaggeration - expected.get("exaggeration").getAsFloat()) < 1e-4, "loaded " + loaded.exaggeration);
+			}
 			this.report.check("apply-to-everyone (Elmo) restored", loaded.everyoneElmo == expected.get("everyoneElmo").getAsBoolean(), "");
 			EyeBallConfig.PlayerOverride bob = loaded.override(BOB);
 			this.report.check("per-player choice restored", bob != null && Boolean.FALSE.equals(bob.googly), bob == null ? "missing" : "googly=" + bob.googly);
@@ -127,6 +138,9 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 			c.elmo = true;
 			c.blinking = false;
 			c.everyoneElmo = true;
+			c.eyeEnlargement = 1.4F;
+			c.mouthOpening = 0.8F;
+			c.exaggeration = 1.25F;
 			c.getOrCreateOverride(BOB, "GooglyBob").googly = Boolean.FALSE;
 		});
 		this.ctx.runOnClient(mc -> ConfigManager.save());
@@ -136,6 +150,9 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		expected.addProperty("elmo", true);
 		expected.addProperty("blinking", false);
 		expected.addProperty("everyoneElmo", true);
+		expected.addProperty("eyeEnlargement", 1.4F);
+		expected.addProperty("mouthOpening", 0.8F);
+		expected.addProperty("exaggeration", 1.25F);
 		try {
 			Files.writeString(runDir.resolve("config").resolve(MARKER), GSON.toJson(expected), StandardCharsets.UTF_8);
 			this.report.note("Distinct settings saved to config/eyeball.json; the next launch verifies they were restored.");
@@ -181,11 +198,14 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 			this.eyeMovement(self);
 			this.blinking(self);
 			this.talking(self);
+			this.screaming(self);
 			this.expressions(self);
+			this.talkingSliders(self);
 			// Players can't be hurt during the first 3 seconds after joining.
 			this.ctx.waitTicks(40);
 			this.hitReaction(server, self);
 			this.priority(server, self);
+			this.transitions(server, self);
 			this.individualSettings(server, self);
 			this.elmo(server, self);
 			this.masterSwitches(self);
@@ -246,30 +266,87 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 	}
 
 	private void talking(UUID self) {
-		this.report.section("Talking animation");
-		FacePose idle = this.pose(self);
-		this.ctx.runOnClient(mc -> mc.player.connection.sendChat("Hello everyone, look at my amazing googly eyes today"));
-		float maxOpen = 0.0F;
-		float maxBrow = Float.NEGATIVE_INFINITY;
-		float maxEye = 0.0F;
-		float maxNod = 0.0F;
-		for (int i = 0; i < 16; i++) {
+		this.report.section("Talking animation: big eyes, wide mouth");
+		Sample idle = this.sample(self);
+		this.report.note(String.format(Locale.ROOT, "Idle face: eye radius %.2f px, mouth %.2f px wide x %.2f px open (head is 8 x 8 px)",
+			idle.layout.eyeRadius[0], idle.layout.mouthWidth, idle.layout.mouthHeight));
+		this.ctx.runOnClient(mc -> mc.player.connection.sendChat("Hello everyone, look at my googly eyes today, they are so big"));
+		List<Sample> talk = new ArrayList<>();
+		boolean shot = false;
+		for (int i = 0; i < 40; i++) {
 			this.ctx.waitTick();
-			FacePose p = this.pose(self);
-			maxOpen = Math.max(maxOpen, p.mouthOpen);
-			maxBrow = Math.max(maxBrow, p.browLift[0]);
-			maxEye = Math.max(maxEye, p.eyeScale[0] / Math.max(0.01F, idle.eyeScale[0]));
-			maxNod = Math.max(maxNod, Math.abs(p.headNod));
-			if (i == 5) {
-				this.report.screenshot(this.ctx, "talking", "Talking after sending a chat message: mouth open, brows up");
+			Sample s = this.sample(self);
+			talk.add(s);
+			if (!shot && i >= 10 && s.layout.mouthHeight > 3.0F && s.eyeRatio(idle) > 1.5F) {
+				this.report.screenshot(this.ctx, "talking", "Talking (chat): eyes swollen to about 1.6x, mouth wide open, brows up");
+				shot = true;
 			}
 		}
-		this.report.check("mouth opens when chatting", maxOpen > 0.3F, String.format(Locale.ROOT, "max open %.2f", maxOpen));
-		this.report.check("eyebrows move while talking", maxBrow > idle.browLift[0] + 0.15F, String.format(Locale.ROOT, "brow lift %.2f -> %.2f", idle.browLift[0], maxBrow));
-		this.report.check("eyes get slightly bigger while talking", maxEye > 1.02F, String.format(Locale.ROOT, "x%.3f", maxEye));
-		this.report.check("head moves while talking", maxNod > 0.01F, String.format(Locale.ROOT, "max nod %.3f rad", maxNod));
-		this.ctx.waitTicks(110);
-		float closed = this.pose(self).mouthOpen;
+		if (!shot) {
+			this.report.screenshot(this.ctx, "talking", "Talking (chat)");
+		}
+		Stats eyes = Stats.of(talk.subList(14, talk.size()), s -> s.eyeRatio(idle));
+		float popPeak = Stats.of(talk.subList(0, 10), s -> s.eyeRatio(idle)).max;
+		Stats mouth = Stats.of(talk, s -> s.layout.mouthHeight);
+		Stats width = Stats.of(talk, s -> s.layout.mouthWidth);
+		Stats dShape = Stats.of(talk, s -> s.pose.mouthDShape);
+		Stats gap = Stats.of(talk, s -> s.layout.eyeMouthGap);
+		Stats bottom = Stats.of(talk, s -> s.layout.mouthBottom);
+		Stats brow = Stats.of(talk, s -> s.pose.browLift[0]);
+		Stats nod = Stats.of(talk, s -> Math.abs(s.pose.headNod));
+		Stats sway = Stats.of(talk, s -> Math.abs(s.pose.headShake));
+		float pupilTravel = 0.0F;
+		float pupilApart = 0.0F;
+		float flapStep = 0.0F;
+		float eyeBob = 0.0F;
+		for (int i = 1; i < talk.size(); i++) {
+			FacePose a = talk.get(i - 1).pose;
+			FacePose b = talk.get(i).pose;
+			pupilTravel += Math.abs(b.pupilX[0] - a.pupilX[0]) + Math.abs(b.pupilY[0] - a.pupilY[0]);
+			pupilApart = Math.max(pupilApart, Math.abs(b.pupilX[0] - b.pupilX[1]) + Math.abs(b.pupilY[0] - b.pupilY[1]));
+			flapStep = Math.max(flapStep, Math.abs(talk.get(i).layout.mouthHeight - talk.get(i - 1).layout.mouthHeight));
+			if (i >= 14) {
+				eyeBob = Math.max(eyeBob, Math.abs(talk.get(i).layout.eyeV[0] - talk.get(i - 1).layout.eyeV[0]));
+			}
+		}
+		this.talkingFlapStep = flapStep;
+		this.report.check("eyes grow to 1.5x-1.8x while talking", eyes.avg >= 1.45F && eyes.avg <= 1.85F && eyes.max >= 1.6F,
+			String.format(Locale.ROOT, "average x%.2f, range x%.2f - x%.2f (was x1.05 before)", eyes.avg, eyes.min, eyes.max));
+		this.report.check("eyes pop when talking starts", popPeak >= eyes.avg + 0.08F,
+			String.format(Locale.ROOT, "first half second peaks at x%.2f, then about x%.2f", popPeak, eyes.avg));
+		this.report.check("pupils keep wobbling independently", pupilTravel > 0.6F && pupilApart > 0.02F,
+			String.format(Locale.ROOT, "pupil travel %.2f eye radii in 2 s, max difference between the eyes %.2f", pupilTravel, pupilApart));
+		this.report.check("mouth opens much wider", mouth.max >= 3.2F,
+			String.format(Locale.ROOT, "up to %.2f px tall (idle %.2f px, the old maximum was 1.56 px)", mouth.max, idle.layout.mouthHeight));
+		this.report.check("mouth stretches sideways", width.max >= idle.layout.mouthWidth * 1.15F,
+			String.format(Locale.ROOT, "up to %.2f px wide (idle %.2f px)", width.max, idle.layout.mouthWidth));
+		this.report.check("several mouth shapes while talking", (width.max - width.min) / idle.layout.mouthWidth >= 0.25F && dShape.max - dShape.min >= 0.2F,
+			String.format(Locale.ROOT, "width %.2f - %.2f px, flat-top amount %.2f - %.2f", width.min, width.max, dShape.min, dShape.max));
+		this.report.check("big eyes never cover the mouth", gap.min >= 0.15F, String.format(Locale.ROOT, "smallest eye-mouth gap %.2f px", gap.min));
+		this.report.check("eyes stay put while the mouth flaps (no bobbing)", eyeBob <= 0.6F,
+			String.format(Locale.ROOT, "eyes move at most %.2f px per tick while the mouth moves up to %.2f px per tick", eyeBob, flapStep));
+		this.report.check("wide mouth stays on the face", bottom.min >= FaceAnchor.PLAYER.chinLimit() - 0.01F,
+			String.format(Locale.ROOT, "lowest point %.2f px (chin limit %.2f)", bottom.min, FaceAnchor.PLAYER.chinLimit()));
+		this.report.check("eyebrows bounce while talking", brow.max > idle.pose.browLift[0] + 0.6F,
+			String.format(Locale.ROOT, "brow lift %.2f -> %.2f px", idle.pose.browLift[0], brow.max));
+		this.report.check("head nods and sways while talking", nod.max > 0.03F && sway.max > 0.02F,
+			String.format(Locale.ROOT, "nod up to %.3f rad, sway up to %.3f rad", nod.max, sway.max));
+
+		this.waitForTalkEnd(self, 120);
+		List<Sample> after = new ArrayList<>();
+		for (int i = 0; i < 30; i++) {
+			this.ctx.waitTick();
+			after.add(this.sample(self));
+		}
+		Stats back = Stats.of(after, s -> s.eyeRatio(idle));
+		float maxStep = 0.0F;
+		for (int i = 1; i < after.size(); i++) {
+			maxStep = Math.max(maxStep, Math.abs(after.get(i).eyeRatio(idle) - after.get(i - 1).eyeRatio(idle)));
+		}
+		float last = after.getLast().eyeRatio(idle);
+		this.report.check("eyes shrink back smoothly when talking stops", back.min >= 0.94F && Math.abs(last - 1.0F) < 0.05F && maxStep < 0.15F,
+			String.format(Locale.ROOT, "x%.2f -> x%.2f in 1.5 s, never below x%.2f, biggest step per tick %.3f", after.getFirst().eyeRatio(idle), last, back.min, maxStep));
+		float closed = after.getLast().pose.mouthOpen;
 		this.report.check("mouth closes again after talking", closed < 0.12F, String.format(Locale.ROOT, "open %.2f", closed));
 
 		this.chatExpression(self, "hahahaha that is so funny", Expression.LAUGHING);
@@ -278,6 +355,65 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.chatExpression(self, "ok", Expression.SMALL_TALK);
 		this.chatExpression(self, "grr I am so mad", Expression.ANGRY);
 		this.chatExpression(self, "yay lets go!!", Expression.EXCITED);
+	}
+
+	private void screaming(UUID self) {
+		this.report.section("Screaming");
+		for (String scream : List.of("AAAAAAHHHHHH", "NOOOOOOO", "eeeeek a spider", "HELP ME!!", "RUN AWAYYYY", "😱")) {
+			Expression detected = ExpressionDetector.detect(scream);
+			this.report.check("\"" + scream + "\" is detected as screaming", detected == Expression.SCREAMING, "got " + detected);
+		}
+		for (String calm : List.of("WHAT ARE YOU DOING", "aah ok", "no", "Hello there")) {
+			Expression detected = ExpressionDetector.detect(calm);
+			this.report.check("\"" + calm + "\" is not a scream", detected != Expression.SCREAMING, "got " + detected);
+		}
+
+		Sample idle = this.sample(self);
+		this.ctx.runOnClient(mc -> mc.player.connection.sendChat("AAAAAAAAHHHHHHH A CREEPER"));
+		this.ctx.waitTicks(2);
+		this.report.check("chat \"AAAAAAAAHHHHHHH A CREEPER\" makes a screaming face", this.mood(self) == Expression.SCREAMING, "mood " + this.mood(self));
+		List<Sample> scream = new ArrayList<>();
+		for (int i = 0; i < 24; i++) {
+			this.ctx.waitTick();
+			scream.add(this.sample(self));
+			if (i == 12) {
+				this.report.screenshot(this.ctx, "screaming", "Screaming: enormous trembling eyes, huge oval mouth with uvula, brows up, head shaking");
+			}
+		}
+		List<Sample> held = scream.subList(10, scream.size());
+		Stats eyes = Stats.of(held, s -> s.eyeRatio(idle));
+		Stats mouth = Stats.of(held, s -> s.layout.mouthHeight);
+		Sample widest = held.stream().max((a, b) -> Float.compare(a.layout.mouthHeight, b.layout.mouthHeight)).orElseThrow();
+		Stats uvula = Stats.of(held, s -> s.pose.mouthUvula);
+		Stats brows = Stats.of(held, s -> s.pose.browLift[0]);
+		Stats pupils = Stats.of(held, s -> s.pose.pupilScale);
+		Stats shake = Stats.of(scream, s -> Math.abs(s.pose.headShake));
+		Stats nod = Stats.of(held, s -> s.pose.headNod);
+		Stats gap = Stats.of(scream, s -> s.layout.eyeMouthGap);
+		Stats bottom = Stats.of(scream, s -> s.layout.mouthBottom);
+		this.report.check("screaming eyes are very large", eyes.avg >= 1.85F && eyes.max <= 2.7F,
+			String.format(Locale.ROOT, "x%.2f on average (x%.2f - x%.2f, trembling)", eyes.avg, eyes.min, eyes.max));
+		this.report.check("mouth opens into a huge oval", mouth.min >= 3.8F && widest.layout.mouthHeight >= 4.2F
+				&& widest.layout.mouthHeight >= widest.layout.mouthWidth * 0.9F,
+			String.format(Locale.ROOT, "%.2f px tall x %.2f px wide at its widest, never under %.2f px tall", widest.layout.mouthHeight, widest.layout.mouthWidth, mouth.min));
+		this.report.check("uvula shows in the screaming mouth", uvula.avg > 0.5F, String.format(Locale.ROOT, "uvula %.2f", uvula.avg));
+		this.report.check("eyebrows shoot up", brows.avg >= 1.0F, String.format(Locale.ROOT, "lift %.2f px", brows.avg));
+		this.report.check("tiny terrified pupils", pupils.avg <= 0.7F, String.format(Locale.ROOT, "pupil scale %.2f", pupils.avg));
+		this.report.check("head shakes and is thrown back", shake.max >= 0.06F && nod.avg <= -0.08F,
+			String.format(Locale.ROOT, "shake up to %.3f rad, head tilted back %.3f rad", shake.max, nod.avg));
+		this.report.check("screaming face never clips", gap.min >= 0.15F && bottom.min >= FaceAnchor.PLAYER.chinLimit() - 0.01F,
+			String.format(Locale.ROOT, "smallest eye-mouth gap %.2f px, lowest mouth point %.2f px", gap.min, bottom.min));
+		this.waitForTalkEnd(self, 80);
+		this.ctx.waitTicks(40);
+		Sample calm = this.sample(self);
+		this.report.check("face calms down after screaming", calm.mood == Expression.NEUTRAL && calm.eyeRatio(idle) < 1.08F && calm.pose.mouthOpen < 0.12F,
+			String.format(Locale.ROOT, "mood %s, eyes x%.2f, mouth %.2f", calm.mood, calm.eyeRatio(idle), calm.pose.mouthOpen));
+
+		this.makeFace(Expression.SCREAMING);
+		Sample keyed = this.sample(self);
+		this.report.check("\"Make a Face: Screaming\" key screams", keyed.mood == Expression.SCREAMING && keyed.eyeRatio(idle) >= 1.75F,
+			String.format(Locale.ROOT, "mood %s, eyes x%.2f", keyed.mood, keyed.eyeRatio(idle)));
+		this.ctx.waitTicks(90);
 	}
 
 	private void chatExpression(UUID self, String message, Expression expected) {
@@ -336,6 +472,117 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.ctx.waitTicks(12);
 	}
 
+	/** Talks for a moment with the given settings and measures the face. */
+	private TalkMeasure measureTalk(UUID self, Consumer<EyeBallConfig> settings) {
+		this.config(c -> {
+			c.copyFrom(EyeBallConfig.defaults());
+			settings.accept(c);
+		});
+		this.ctx.waitTicks(30);
+		Sample idle = this.sample(self);
+		this.ctx.runOnClient(mc -> mc.player.connection.sendChat("Testing the talking sliders now"));
+		List<Sample> talk = new ArrayList<>();
+		for (int i = 0; i < 34; i++) {
+			this.ctx.waitTick();
+			talk.add(this.sample(self));
+		}
+		this.waitForTalkEnd(self, 80);
+		int settle = 0;
+		for (; settle < 60; settle++) {
+			Sample s = this.sample(self);
+			if (Math.abs(s.eyeRatio(idle) - 1.0F) < 0.05F) {
+				break;
+			}
+			this.ctx.waitTick();
+		}
+		this.config(c -> c.copyFrom(EyeBallConfig.defaults()));
+		List<Sample> steady = talk.subList(12, talk.size());
+		return new TalkMeasure(Stats.of(steady, s -> s.eyeRatio(idle)).avg, Stats.of(talk, s -> s.layout.mouthHeight).max,
+			Stats.of(talk, s -> Math.abs(s.pose.headShake)).max, settle);
+	}
+
+	private void talkingSliders(UUID self) {
+		this.report.section("Talking sliders (Eye Enlargement, Mouth Opening, Animation Speed, Overall Exaggeration)");
+		TalkMeasure normal = this.measureTalk(self, c -> {
+		});
+		TalkMeasure noGrowth = this.measureTalk(self, c -> c.eyeEnlargement = 0.0F);
+		TalkMeasure maxGrowth = this.measureTalk(self, c -> c.eyeEnlargement = 2.0F);
+		this.report.check("Eye Enlargement 0: eyes stay normal size", noGrowth.eyes() <= 1.12F, String.format(Locale.ROOT, "x%.2f", noGrowth.eyes()));
+		this.report.check("Eye Enlargement 2: eyes grow even more", maxGrowth.eyes() >= normal.eyes() + 0.35F,
+			String.format(Locale.ROOT, "x%.2f (default x%.2f)", maxGrowth.eyes(), normal.eyes()));
+		TalkMeasure smallMouth = this.measureTalk(self, c -> c.mouthOpening = 0.5F);
+		TalkMeasure bigMouth = this.measureTalk(self, c -> c.mouthOpening = 1.8F);
+		this.report.check("Mouth Opening changes how wide the mouth opens", bigMouth.mouth() >= smallMouth.mouth() * 1.5F,
+			String.format(Locale.ROOT, "0.50x: %.2f px, 1.00x: %.2f px, 1.80x: %.2f px", smallMouth.mouth(), normal.mouth(), bigMouth.mouth()));
+		TalkMeasure calm = this.measureTalk(self, c -> c.exaggeration = 0.5F);
+		TalkMeasure wild = this.measureTalk(self, c -> c.exaggeration = 1.8F);
+		this.report.check("Overall Exaggeration scales everything", (wild.eyes() - 1.0F) >= 2.0F * (calm.eyes() - 1.0F)
+				&& wild.mouth() > calm.mouth() * 1.3F && wild.sway() > calm.sway() * 2.0F,
+			String.format(Locale.ROOT, "0.50x: eyes x%.2f, mouth %.2f px, sway %.3f rad | 1.80x: eyes x%.2f, mouth %.2f px, sway %.3f rad",
+				calm.eyes(), calm.mouth(), calm.sway(), wild.eyes(), wild.mouth(), wild.sway()));
+		TalkMeasure slow = this.measureTalk(self, c -> c.animationSpeed = 0.5F);
+		TalkMeasure fast = this.measureTalk(self, c -> c.animationSpeed = 2.0F);
+		this.report.check("Animation Speed changes how fast the face moves", slow.settleTicks() >= fast.settleTicks() * 2,
+			String.format(Locale.ROOT, "eyes back to normal after talking in %d ticks at 0.50x, %d at 1.00x, %d at 2.00x",
+				slow.settleTicks(), normal.settleTicks(), fast.settleTicks()));
+	}
+
+	/** One long sequence through every animation, checking that nothing jumps between ticks or overlaps. */
+	private void transitions(TestServerContext server, UUID self) {
+		this.report.section("Smooth transitions: idle -> talking -> screaming -> hit -> talking -> idle");
+		Sample idle = this.sample(self);
+		this.ctx.runOnClient(mc -> mc.player.connection.sendChat("This is a really long message so I keep on talking and talking for quite a while longer, okay"));
+		List<Expression> moods = new ArrayList<>();
+		Sample previous = idle;
+		float maxEyeStep = 0.0F;
+		float maxMoveStep = 0.0F;
+		float maxMouthStep = 0.0F;
+		float maxBrowStep = 0.0F;
+		float minGap = Float.POSITIVE_INFINITY;
+		float minBottom = Float.POSITIVE_INFINITY;
+		for (int t = 0; t < 190; t++) {
+			if (t == 22) {
+				this.ctx.runOnClient(mc -> EyeBallKeys.makeFace(mc, Expression.SCREAMING));
+			}
+			if (t == 50) {
+				server.runCommand("damage @p 1 minecraft:generic");
+			}
+			this.ctx.waitTick();
+			Sample s = this.sample(self);
+			if (moods.isEmpty() || moods.getLast() != s.mood) {
+				moods.add(s.mood);
+			}
+			for (int i = 0; i < 2; i++) {
+				maxEyeStep = Math.max(maxEyeStep, Math.abs(s.pose.eyeScale[i] - previous.pose.eyeScale[i]));
+				maxMoveStep = Math.max(maxMoveStep, (float) Math.hypot(s.layout.eyeU[i] - previous.layout.eyeU[i], s.layout.eyeV[i] - previous.layout.eyeV[i]));
+				maxBrowStep = Math.max(maxBrowStep, Math.abs(s.pose.browLift[i] - previous.pose.browLift[i]));
+			}
+			maxMouthStep = Math.max(maxMouthStep, Math.abs(s.layout.mouthHeight - previous.layout.mouthHeight));
+			minGap = Math.min(minGap, s.layout.eyeMouthGap);
+			minBottom = Math.min(minBottom, s.layout.mouthBottom);
+			previous = s;
+		}
+		int talking = moods.indexOf(Expression.TALKING);
+		int scream = moods.indexOf(Expression.SCREAMING);
+		int hit = moods.indexOf(Expression.DIZZY);
+		boolean order = talking >= 0 && scream > talking && hit > scream && moods.lastIndexOf(Expression.TALKING) > hit
+			&& moods.getLast() == Expression.NEUTRAL;
+		this.report.check("every animation played in priority order", order, String.valueOf(moods));
+		this.report.check("eye size never snaps", maxEyeStep <= 0.35F, String.format(Locale.ROOT, "largest change in one tick: x%.3f", maxEyeStep));
+		this.report.check("eyes never jump around", maxMoveStep <= 1.5F, String.format(Locale.ROOT, "largest move in one tick: %.2f px", maxMoveStep));
+		float mouthLimit = Math.max(2.0F, this.talkingFlapStep * 1.2F);
+		this.report.check("mouth changes no faster than ordinary lip movement", maxMouthStep <= mouthLimit,
+			String.format(Locale.ROOT, "largest change in one tick: %.2f px (ordinary talking: %.2f px)", maxMouthStep, this.talkingFlapStep));
+		this.report.check("eyebrows never snap", maxBrowStep <= 0.8F, String.format(Locale.ROOT, "largest change in one tick: %.2f px", maxBrowStep));
+		this.report.check("eyes never overlap the mouth in any of them", minGap >= 0.1F, String.format(Locale.ROOT, "smallest gap %.2f px", minGap));
+		this.report.check("mouth never hangs off the chin", minBottom >= FaceAnchor.PLAYER.chinLimit() - 0.01F, String.format(Locale.ROOT, "lowest point %.2f px", minBottom));
+		Sample end = this.sample(self);
+		this.report.check("back to the normal face at the end", Math.abs(end.eyeRatio(idle) - 1.0F) < 0.06F && end.pose.mouthOpen < 0.12F,
+			String.format(Locale.ROOT, "eyes x%.2f, mouth %.2f", end.eyeRatio(idle), end.pose.mouthOpen));
+		server.runCommand("effect give @p minecraft:instant_health 1 1 true");
+		this.ctx.waitTicks(10);
+	}
+
 	private void hitReaction(TestServerContext server, UUID self) {
 		this.report.section("Hit reaction: spiral eyes");
 		float health = this.ctx.computeOnClient(mc -> mc.player.getHealth());
@@ -347,9 +594,9 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.report.check("spiral eyes appear immediately", first.spiral, "");
 		// The pop and the shocked mouth spring open over the next few ticks.
 		float peakEye = this.maxOver(6, mc -> this.poseOnClient(self).eyeScale[0]);
-		float peakMouth = this.ctx.computeOnClient(mc -> this.poseOnClient(self).mouthOpen);
+		float peakMouth = this.sample(self).layout.mouthHeight;
 		this.report.check("eyes become bigger", peakEye > 1.1F, String.format(Locale.ROOT, "peak x%.2f", peakEye));
-		this.report.check("shocked open mouth", peakMouth > 0.45F, String.format(Locale.ROOT, "open %.2f", peakMouth));
+		this.report.check("shocked open mouth", peakMouth > 1.8F, String.format(Locale.ROOT, "%.2f px open", peakMouth));
 		FacePose second = this.pose(self);
 		this.report.check("spirals rotate", Math.abs(second.spiralAngle - first.spiralAngle) > 0.5F,
 			String.format(Locale.ROOT, "%.2f -> %.2f rad", first.spiralAngle, second.spiralAngle));
@@ -498,11 +745,32 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.report.check("player is drawn by the Elmo renderer", elmoRenderer, "");
 		this.report.check("Elmo face data (googly eyes on Elmo)", data != null && data.elmo && data.googly, "");
 		this.report.screenshot(this.ctx, "elmo", "Elmo transformation with googly eyes: fur shells, orange nose, big mouth");
+		Sample elmoIdle = this.sample(self);
 		this.ctx.runOnClient(mc -> mc.player.connection.sendChat("Elmo loves to talk with everybody! hahaha"));
-		float maxOpen = this.maxOver(8, mc -> this.poseOnClient(self).mouthOpen);
+		List<Sample> elmoTalk = new ArrayList<>();
+		for (int i = 0; i < 24; i++) {
+			this.ctx.waitTick();
+			elmoTalk.add(this.sample(self));
+			if (i == 14) {
+				this.report.screenshot(this.ctx, "elmo_talking", "Elmo talking (laughing message): big eyes, wide mouth");
+			}
+		}
+		float maxOpen = Stats.of(elmoTalk, x -> x.pose.mouthOpen).max;
+		Stats elmoEyes = Stats.of(elmoTalk.subList(12, elmoTalk.size()), x -> x.eyeRatio(elmoIdle));
+		Stats elmoMouth = Stats.of(elmoTalk, x -> x.layout.mouthHeight);
+		Stats elmoBottom = Stats.of(elmoTalk, x -> x.layout.mouthBottom);
 		this.report.check("Elmo mouth talks", maxOpen > 0.3F, String.format(Locale.ROOT, "max open %.2f", maxOpen));
-		this.report.screenshot(this.ctx, "elmo_talking", "Elmo talking (laughing message)");
-		this.ctx.waitTicks(100);
+		this.report.check("Elmo's eyes and mouth get big too", elmoEyes.avg >= 1.45F && elmoMouth.max >= 4.0F,
+			String.format(Locale.ROOT, "eyes x%.2f, mouth up to %.2f px (idle %.2f px)", elmoEyes.avg, elmoMouth.max, elmoIdle.layout.mouthHeight));
+		this.report.check("Elmo's mouth stays on his face", elmoBottom.min >= FaceAnchor.ELMO.chinLimit() - 0.01F,
+			String.format(Locale.ROOT, "lowest point %.2f px", elmoBottom.min));
+		this.waitForTalkEnd(self, 120);
+		this.makeFace(Expression.SCREAMING);
+		Sample elmoScream = this.sample(self);
+		this.report.check("Elmo screams", elmoScream.mood == Expression.SCREAMING && elmoScream.eyeRatio(elmoIdle) >= 1.75F && elmoScream.layout.mouthHeight >= 4.5F,
+			String.format(Locale.ROOT, "eyes x%.2f, mouth %.2f px", elmoScream.eyeRatio(elmoIdle), elmoScream.layout.mouthHeight));
+		this.report.screenshot(this.ctx, "elmo_screaming", "Elmo screaming: huge eyes, round open mouth, arms flailing");
+		this.ctx.waitTicks(80);
 		server.runCommand("damage @p 1 minecraft:generic");
 		this.ctx.waitTicks(6);
 		this.report.check("Elmo gets spiral eyes when hit", this.pose(self).spiral, "");
@@ -590,9 +858,42 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		});
 		this.report.check("menu switch turns it back ON", this.ctx.computeOnClient(mc -> ConfigManager.get().googlyEyes), "");
 
+		boolean sliders = this.ctx.computeOnClient(mc -> {
+			EyeBallConfigScreen screen = (EyeBallConfigScreen) mc.gui.screen();
+			int found = 0;
+			for (AbstractWidget widget : screen.settingsList().allWidgets()) {
+				String label = widget.getMessage().getString();
+				if (widget instanceof ValueSlider && (label.startsWith("Eye Enlargement:") || label.startsWith("Mouth Opening:")
+					|| label.startsWith("Animation Speed:") || label.startsWith("Overall Exaggeration:"))) {
+					found++;
+				}
+			}
+			return found == 4;
+		});
+		this.report.check("menu has Eye Enlargement, Mouth Opening, Animation Speed and Overall Exaggeration sliders", sliders, "");
+		boolean sliderWorks = this.ctx.computeOnClient(mc -> {
+			EyeBallConfigScreen screen = (EyeBallConfigScreen) mc.gui.screen();
+			for (AbstractWidget widget : screen.settingsList().allWidgets()) {
+				if (widget instanceof ValueSlider slider && widget.getMessage().getString().startsWith("Eye Enlargement:")) {
+					slider.setActualValue(1.5);
+					boolean applied = Math.abs(ConfigManager.get().eyeEnlargement - 1.5F) < 1e-4 && widget.getMessage().getString().endsWith("1.50x");
+					// Scroll the list so the new section is in the screenshot.
+					screen.settingsList().scrollToWidget(widget, 24);
+					return applied;
+				}
+			}
+			return false;
+		});
+		this.report.check("moving the Eye Enlargement slider changes the setting", sliderWorks, "");
+		// Park the mouse away from the list so no tooltip covers the screenshot.
+		this.ctx.getInput().setCursorPos(2.0, 2.0);
+		this.ctx.waitTicks(3);
+		this.report.screenshot(this.ctx, "menu_talking_sliders", "The new Talking & Expressions sliders");
+		this.ctx.runOnClient(mc -> ConfigManager.get().eyeEnlargement = 1.0F);
+
 		for (PreviewController.Mode mode : PreviewController.Mode.values()) {
 			this.ctx.runOnClient(mc -> ((EyeBallConfigScreen) mc.gui.screen()).previewController().setMode(mode));
-			this.ctx.waitTicks(mode.isHit() ? 12 : 20);
+			this.ctx.waitTicks(mode.isHit() ? 12 : mode == PreviewController.Mode.TALKING || mode == PreviewController.Mode.ELMO_TALKING ? 16 : 20);
 			this.report.screenshot(this.ctx, "preview_" + mode.name().toLowerCase(Locale.ROOT), "Preview: " + mode.label().getString());
 		}
 		this.ctx.runOnClient(mc -> {
@@ -682,19 +983,24 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 			this.ctx.waitTicks(20);
 			boolean bobVisible = this.ctx.computeOnClient(mc -> mc.level.getPlayerByUUID(BOB) != null);
 			this.report.check("second player visible to the client", bobVisible, "");
-			this.ctx.getInput().lookAt(0.0F, 0.0F);
+			// Looking slightly up, so the other player's big eyes and brows fit in the screenshots.
+			this.ctx.getInput().lookAt(0.0F, -8.0F);
 			this.ctx.waitTicks(20);
 			FaceRenderData bobData = this.extractFor(BOB);
 			this.report.check("other players get googly eyes (Apply to Everyone)", bobData != null && bobData.googly && !bobData.elmo, "");
 			this.report.screenshot(this.ctx, "mp_other_player", "Another player on the server with googly eyes, seen in first person");
+			this.watchBobTalk(server, connection);
 
 			server.runOnServer(s -> s.getPlayerList().broadcastSystemMessage(Component.literal("<GooglyBob> hahaha this mod is hilarious"), false));
 			connection.waitForClientboundPackets();
 			this.ctx.waitTicks(3);
 			Expression bobMood = this.ctx.computeOnClient(mc -> FaceAnimationManager.INSTANCE.stateFor(BOB).activeMood());
 			this.report.check("server-formatted chat makes the other player talk", bobMood == Expression.LAUGHING, "mood " + bobMood);
-			this.report.screenshot(this.ctx, "mp_other_player_talking", "The other player laughing after their chat message");
+			this.ctx.waitTicks(5);
+			this.report.screenshot(this.ctx, "mp_other_player_laughing", "The other player laughing after their chat message");
 			this.ctx.waitTicks(80);
+			this.watchBobScream(server, connection);
+			this.watchBobVoice();
 
 			server.runOnServer(s -> EyeBallServer.relay(bobPlayer(s), FaceEventKind.EXPRESSION, Expression.SURPRISED, 60, false));
 			connection.waitForClientboundPackets();
@@ -749,6 +1055,127 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 
 			this.performance(server, connection);
 		}
+	}
+
+	/** What you see when another player talks: the main reason the animations are exaggerated. */
+	private void watchBobTalk(TestDedicatedServerContext server, TestDedicatedServerConnection connection) {
+		this.report.section("Watching another player talk");
+		Sample idle = this.sample(BOB);
+		server.runOnServer(s -> s.getPlayerList().broadcastSystemMessage(
+			Component.literal("<GooglyBob> Hello there, did you see how big my eyes get when I talk"), false));
+		connection.waitForClientboundPackets();
+		List<Sample> talk = new ArrayList<>();
+		boolean shot = false;
+		for (int i = 0; i < 36; i++) {
+			this.ctx.waitTick();
+			Sample s = this.sample(BOB);
+			talk.add(s);
+			if (!shot && i >= 10 && s.layout.mouthHeight > 3.2F && s.eyeRatio(idle) > 1.5F) {
+				this.report.screenshot(this.ctx, "mp_other_player_talking", "The other player talking: eyes about 1.6x, mouth wide open");
+				shot = true;
+			}
+		}
+		if (!shot) {
+			this.report.screenshot(this.ctx, "mp_other_player_talking", "The other player talking");
+		}
+		Stats eyes = Stats.of(talk.subList(12, talk.size()), x -> x.eyeRatio(idle));
+		Stats mouth = Stats.of(talk, x -> x.layout.mouthHeight);
+		Stats gap = Stats.of(talk, x -> x.layout.eyeMouthGap);
+		this.report.check("other player's eyes swell up while they talk", eyes.avg >= 1.45F,
+			String.format(Locale.ROOT, "x%.2f on average, up to x%.2f", eyes.avg, eyes.max));
+		this.report.check("other player's mouth opens wide", mouth.max >= 3.2F,
+			String.format(Locale.ROOT, "up to %.2f px (idle %.2f px)", mouth.max, idle.layout.mouthHeight));
+		this.report.check("other player's face never clips", gap.min >= 0.15F, String.format(Locale.ROOT, "smallest eye-mouth gap %.2f px", gap.min));
+		this.waitForTalkEnd(BOB, 120);
+		this.ctx.waitTicks(30);
+	}
+
+	private void watchBobScream(TestDedicatedServerContext server, TestDedicatedServerConnection connection) {
+		this.report.section("Watching another player scream");
+		Sample idle = this.sample(BOB);
+		server.runOnServer(s -> s.getPlayerList().broadcastSystemMessage(Component.literal("<GooglyBob> AAAAAAAHHHHHHH HELP ME"), false));
+		connection.waitForClientboundPackets();
+		this.ctx.waitTicks(14);
+		Sample scream = this.sample(BOB);
+		this.report.check("other player screams from chat", scream.mood == Expression.SCREAMING && scream.eyeRatio(idle) >= 1.8F && scream.layout.mouthHeight >= 4.0F,
+			String.format(Locale.ROOT, "mood %s, eyes x%.2f, mouth %.2f x %.2f px", scream.mood, scream.eyeRatio(idle), scream.layout.mouthHeight, scream.layout.mouthWidth));
+		this.report.screenshot(this.ctx, "mp_other_player_screaming", "The other player screaming");
+		this.waitForTalkEnd(BOB, 80);
+		this.ctx.waitTicks(40);
+	}
+
+	/** Feeds microphone loudness through the same path Simple Voice Chat uses (VoiceActivity -> VoiceLipSync). */
+	private void watchBobVoice() {
+		this.report.section("Talking with Simple Voice Chat (loudness path)");
+		this.ctx.runOnClient(mc -> VoiceActivity.markPluginActive());
+		Sample idle = this.sample(BOB);
+		List<Sample> speech = new ArrayList<>();
+		float loudMouth = 0.0F;
+		float quietMouth = 0.0F;
+		int loudCount = 0;
+		int quietCount = 0;
+		for (int i = 0; i < 40; i++) {
+			// Speech that gets louder and quieter, like a real voice.
+			float level = i % 8 < 4 ? 0.75F : 0.3F;
+			short[] samples = tone(level);
+			this.ctx.runOnClient(mc -> VoiceActivity.report(BOB, samples));
+			this.ctx.waitTick();
+			Sample s = this.sample(BOB);
+			speech.add(s);
+			if (i >= 8) {
+				if (i % 8 == 3) {
+					loudMouth += s.layout.mouthHeight;
+					loudCount++;
+				} else if (i % 8 == 7) {
+					quietMouth += s.layout.mouthHeight;
+					quietCount++;
+				}
+			}
+			if (i == 19) {
+				this.report.screenshot(this.ctx, "mp_voice_talking", "The other player talking on voice chat");
+			}
+		}
+		loudMouth /= Math.max(1, loudCount);
+		quietMouth /= Math.max(1, quietCount);
+		Stats eyes = Stats.of(speech.subList(12, speech.size()), x -> x.eyeRatio(idle));
+		boolean talkingFace = speech.getLast().mood == Expression.TALKING && speech.getLast().pose.talking;
+		this.report.check("voice makes the other player talk", talkingFace, "mood " + speech.getLast().mood);
+		this.report.check("eyes swell while speaking", eyes.avg >= 1.4F, String.format(Locale.ROOT, "x%.2f", eyes.avg));
+		this.report.check("mouth follows the voice volume", loudMouth >= 2.4F && loudMouth > quietMouth * 1.4F,
+			String.format(Locale.ROOT, "loud: %.2f px, quiet: %.2f px", loudMouth, quietMouth));
+
+		int screamTick = -1;
+		Sample yell = null;
+		for (int i = 0; i < 26; i++) {
+			short[] samples = tone(1.0F);
+			this.ctx.runOnClient(mc -> VoiceActivity.report(BOB, samples));
+			this.ctx.waitTick();
+			yell = this.sample(BOB);
+			if (screamTick < 0 && yell.mood == Expression.SCREAMING) {
+				screamTick = i;
+			}
+		}
+		this.report.check("yelling into the microphone turns into a scream", screamTick >= 0 && screamTick <= 14 && yell.mood == Expression.SCREAMING,
+			"screaming after " + screamTick + " ticks of yelling");
+		this.report.check("voice scream has huge eyes and mouth", yell.eyeRatio(idle) >= 1.8F && yell.layout.mouthHeight >= 4.0F,
+			String.format(Locale.ROOT, "eyes x%.2f, mouth %.2f px", yell.eyeRatio(idle), yell.layout.mouthHeight));
+		this.report.screenshot(this.ctx, "mp_voice_scream", "The other player yelling on voice chat: screaming face");
+		this.ctx.waitTicks(50);
+		Sample quiet = this.sample(BOB);
+		this.report.check("silence returns to the normal face", quiet.mood == Expression.NEUTRAL && quiet.eyeRatio(idle) < 1.08F && quiet.pose.mouthOpen < 0.12F,
+			String.format(Locale.ROOT, "mood %s, eyes x%.2f, mouth %.2f", quiet.mood, quiet.eyeRatio(idle), quiet.pose.mouthOpen));
+		this.ctx.runOnClient(mc -> VoiceActivity.clear());
+	}
+
+	/** 20 ms of 48 kHz voice-like audio at a 0..1 loudness (the inverse of VoiceActivity.loudness). */
+	private static short[] tone(float level) {
+		double rms = Math.pow(10.0, (-50.0 + 38.0 * level) / 20.0);
+		double amplitude = Math.min(32000.0, rms * Math.sqrt(2.0) * 32768.0);
+		short[] samples = new short[960];
+		for (int i = 0; i < samples.length; i++) {
+			samples[i] = (short) Math.round(amplitude * Math.sin(i * 2.0 * Math.PI * 220.0 / 48000.0));
+		}
+		return samples;
 	}
 
 	private void performance(TestDedicatedServerContext server, TestDedicatedServerConnection connection) {
@@ -832,6 +1259,55 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 	private FacePose poseOnClient(UUID player) {
 		FaceState state = FaceAnimationManager.INSTANCE.existingState(player);
 		return state == null ? null : state.pose(0.0F, ConfigManager.get());
+	}
+
+	/** One measured frame of a face: the animation pose and where the renderer puts every feature. */
+	private record Sample(FacePose pose, FaceMeshBuilder.FaceLayout layout, Expression mood) {
+		/** Eye size relative to the same eye in another sample (averaged over both eyes). */
+		float eyeRatio(Sample base) {
+			return 0.5F * (this.pose.eyeScale[0] / base.pose.eyeScale[0] + this.pose.eyeScale[1] / base.pose.eyeScale[1]);
+		}
+	}
+
+	private record Stats(float min, float max, float avg) {
+		static Stats of(List<Sample> samples, Function<Sample, Float> metric) {
+			float min = Float.POSITIVE_INFINITY;
+			float max = Float.NEGATIVE_INFINITY;
+			float sum = 0.0F;
+			for (Sample sample : samples) {
+				float value = metric.apply(sample);
+				min = Math.min(min, value);
+				max = Math.max(max, value);
+				sum += value;
+			}
+			return new Stats(min, max, samples.isEmpty() ? 0.0F : sum / samples.size());
+		}
+	}
+
+	private record TalkMeasure(float eyes, float mouth, float sway, int settleTicks) {
+	}
+
+	/** Measures a player's face exactly as the renderer would draw it this tick. */
+	private Sample sample(UUID player) {
+		return this.ctx.computeOnClient(mc -> {
+			Player p = mc.level.getPlayerByUUID(player);
+			FaceRenderData data = p instanceof AbstractClientPlayer clientPlayer ? extractOnClient(mc, clientPlayer) : null;
+			if (data == null) {
+				throw new AssertionError("no face for " + player);
+			}
+			FaceAnchor anchor = data.elmo ? FaceAnchor.ELMO : FaceAnchor.PLAYER;
+			return new Sample(data.pose, FaceMeshBuilder.measure(data, anchor), FaceAnimationManager.INSTANCE.stateFor(player).activeMood());
+		});
+	}
+
+	private void waitForTalkEnd(UUID player, int maxTicks) {
+		for (int i = 0; i < maxTicks; i++) {
+			int left = this.ctx.computeOnClient(mc -> FaceAnimationManager.INSTANCE.stateFor(player).talkTicksLeft());
+			if (left <= 0) {
+				return;
+			}
+			this.ctx.waitTick();
+		}
 	}
 
 	private Expression mood(UUID player) {

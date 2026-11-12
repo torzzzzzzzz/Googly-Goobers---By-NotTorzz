@@ -25,12 +25,15 @@ public final class PreviewController {
 	public enum Mode {
 		GOOGLY("googly", false),
 		TALKING("talking", false),
+		SCREAMING("screaming", false),
 		BLINKING("blinking", false),
 		SURPRISED("surprised", false),
 		ANGRY("angry", false),
+		LAUGHING("laughing", false),
 		SPIRAL("spiral", false),
 		ELMO("elmo", true),
 		ELMO_TALKING("elmo_talking", true),
+		ELMO_SCREAMING("elmo_screaming", true),
 		ELMO_HIT("elmo_hit", true);
 
 		private final String key;
@@ -90,6 +93,17 @@ public final class PreviewController {
 				if (this.cycle % 64 == 1) {
 					Expression expression = TALK_CYCLE[this.talkIndex++ % TALK_CYCLE.length];
 					this.face.talk(expression, 54);
+				}
+			}
+			case SCREAMING, ELMO_SCREAMING -> {
+				// Scream for three seconds, then a short break so you can see it blend in and out.
+				if (this.cycle % 84 == 1) {
+					this.face.express(Expression.SCREAMING, 60);
+				}
+			}
+			case LAUGHING -> {
+				if (this.cycle % 64 == 1) {
+					this.face.talk(Expression.LAUGHING, 54);
 				}
 			}
 			case BLINKING -> {

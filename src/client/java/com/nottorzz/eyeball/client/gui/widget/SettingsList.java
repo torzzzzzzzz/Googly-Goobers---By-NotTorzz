@@ -65,6 +65,16 @@ public final class SettingsList extends ContainerObjectSelectionList<SettingsLis
 		this.addEntry(new InfoRow(text, color), 14);
 	}
 
+	/** Scrolls so the row holding {@code widget} sits {@code margin} pixels below the top of the list. */
+	public void scrollToWidget(AbstractWidget widget, int margin) {
+		for (Row row : this.children()) {
+			if (row.children().contains(widget)) {
+				this.setScrollAmount(this.scrollAmount() + row.getY() - this.getY() - margin);
+				return;
+			}
+		}
+	}
+
 	/** All interactive widgets, for refreshing after a reset. */
 	public List<AbstractWidget> allWidgets() {
 		List<AbstractWidget> widgets = new ArrayList<>();

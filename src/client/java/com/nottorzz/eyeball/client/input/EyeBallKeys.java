@@ -28,7 +28,8 @@ public final class EyeBallKeys {
 	public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(EyeBallMod.id("controls"));
 	private static final int EXPRESSION_TICKS = 60;
 	private static final Expression[] EXPRESSIONS = {
-		Expression.SURPRISED, Expression.ANGRY, Expression.LAUGHING, Expression.EXCITED, Expression.HAPPY, Expression.CONFUSED
+		Expression.SURPRISED, Expression.ANGRY, Expression.LAUGHING, Expression.EXCITED, Expression.HAPPY, Expression.CONFUSED,
+		Expression.SCREAMING
 	};
 
 	private static KeyMapping openMenu;

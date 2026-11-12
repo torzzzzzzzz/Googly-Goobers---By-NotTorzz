@@ -60,11 +60,12 @@ public final class PreviewPanel extends AbstractWidget {
 
 		this.shownZoom += (this.zoom - this.shownZoom) * 0.2F;
 		boolean elmo = this.controller.mode().elmo;
-		float fullScale = elmo ? h / 2.8F : h / 2.6F;
-		float faceScale = elmo ? h / 1.15F : h / 0.95F;
+		// Framed with room above the head: talking and screaming eyes grow far above it.
+		float fullScale = elmo ? h / 3.3F : h / 3.0F;
+		float faceScale = elmo ? h / 1.45F : h / 1.2F;
 		float scale = Mth.lerp(this.shownZoom, fullScale, faceScale);
-		float headCenter = elmo ? 1.7F : 1.56F;
-		float centerY = Mth.lerp(this.shownZoom, elmo ? 1.15F : 1.0F, headCenter);
+		float headCenter = elmo ? 1.92F : 1.74F;
+		float centerY = Mth.lerp(this.shownZoom, elmo ? 1.45F : 1.3F, headCenter);
 		Quaternionf rotation = new Quaternionf().rotateZ(Mth.PI).rotateX(this.pitch * Mth.DEG_TO_RAD);
 		Quaternionf camera = new Quaternionf().rotateX(this.pitch * Mth.DEG_TO_RAD);
 		g.entity(state, scale, new Vector3f(0.0F, centerY, 0.0F), rotation, camera, x + 2, y + 2, x + w - 2, y + h - 2);

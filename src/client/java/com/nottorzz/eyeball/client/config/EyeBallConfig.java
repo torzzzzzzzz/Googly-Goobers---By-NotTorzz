@@ -21,6 +21,9 @@ public final class EyeBallConfig {
 	public static final float EXPRESSION_INTENSITY_MIN = 0.0F, EXPRESSION_INTENSITY_MAX = 2.0F;
 	public static final float EYE_SPACING_MIN = 0.7F, EYE_SPACING_MAX = 1.4F;
 	public static final float CHARACTER_SIZE_MIN = 0.75F, CHARACTER_SIZE_MAX = 1.5F;
+	public static final float EYE_ENLARGEMENT_MIN = 0.0F, EYE_ENLARGEMENT_MAX = 2.0F;
+	public static final float MOUTH_OPENING_MIN = 0.25F, MOUTH_OPENING_MAX = 2.0F;
+	public static final float EXAGGERATION_MIN = 0.25F, EXAGGERATION_MAX = 2.0F;
 
 	// --- Modes ---
 	public boolean googlyEyes = true;
@@ -54,6 +57,12 @@ public final class EyeBallConfig {
 	public float characterSize = 1.0F;
 	public float animationSpeed = 1.0F;
 	public float expressionIntensity = 1.0F;
+	/** How much the eyes grow while talking and screaming (1 = about 1.6x when talking, 2x when screaming). */
+	public float eyeEnlargement = 1.0F;
+	/** How wide the mouth opens while talking and screaming. */
+	public float mouthOpening = 1.0F;
+	/** Multiplies all cartoon motion: eye growth and pops, mouth opening, eyebrow bounce, head bobbing and shaking. */
+	public float exaggeration = 1.0F;
 
 	// --- Targets (per effect, so Googly Eyes and Elmo are independently controllable) ---
 	public boolean selfGoogly = true;
@@ -110,6 +119,9 @@ public final class EyeBallConfig {
 		this.characterSize = other.characterSize;
 		this.animationSpeed = other.animationSpeed;
 		this.expressionIntensity = other.expressionIntensity;
+		this.eyeEnlargement = other.eyeEnlargement;
+		this.mouthOpening = other.mouthOpening;
+		this.exaggeration = other.exaggeration;
 		this.selfGoogly = other.selfGoogly;
 		this.selfElmo = other.selfElmo;
 		this.everyoneGoogly = other.everyoneGoogly;
@@ -135,6 +147,9 @@ public final class EyeBallConfig {
 		this.characterSize = clamp(this.characterSize, CHARACTER_SIZE_MIN, CHARACTER_SIZE_MAX, 1.0F);
 		this.animationSpeed = clamp(this.animationSpeed, ANIM_SPEED_MIN, ANIM_SPEED_MAX, 1.0F);
 		this.expressionIntensity = clamp(this.expressionIntensity, EXPRESSION_INTENSITY_MIN, EXPRESSION_INTENSITY_MAX, 1.0F);
+		this.eyeEnlargement = clamp(this.eyeEnlargement, EYE_ENLARGEMENT_MIN, EYE_ENLARGEMENT_MAX, 1.0F);
+		this.mouthOpening = clamp(this.mouthOpening, MOUTH_OPENING_MIN, MOUTH_OPENING_MAX, 1.0F);
+		this.exaggeration = clamp(this.exaggeration, EXAGGERATION_MIN, EXAGGERATION_MAX, 1.0F);
 		if (this.playerOverrides == null) {
 			this.playerOverrides = new LinkedHashMap<>();
 		}

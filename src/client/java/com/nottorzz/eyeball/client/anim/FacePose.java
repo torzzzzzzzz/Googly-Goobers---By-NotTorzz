@@ -16,6 +16,11 @@ public final class FacePose {
 	public final float[] pupilX = new float[2];
 	public final float[] pupilY = new float[2];
 	public float pupilScale = 1.0F;
+	/**
+	 * Which eye is drawn in front when big eyes overlap. Fixed per player (the naturally bigger
+	 * eye), so the overlap never flips from frame to frame.
+	 */
+	public int frontEye;
 	/** Extra vertical offset of both eyes (walk / jump bounce), pixels. */
 	public float eyeBounce;
 	/** True while the eyes show spinning spirals. */
@@ -34,12 +39,20 @@ public final class FacePose {
 	public float mouthSmile;
 	public float mouthDShape;
 	public float mouthTeeth;
+	/** The widest the mouth has been recently (same units as {@link #mouthOpen}); the eyes keep clear of it. */
+	public float mouthReach;
+	/** 0..1 the little dangling uvula at the back of a wide-open screaming mouth. */
+	public float mouthUvula;
 
 	// Head and body motion
 	public float wobbleX;
 	public float wobbleY;
 	public float wobbleZ;
 	public float headNod;
+	/** Side-to-side head turn (yaw) from talking sway and the screaming shake, radians. */
+	public float headShake;
+	/** Head roll (tilt to the side) while talking, radians. */
+	public float headRoll;
 	public float leanX;
 	public float leanZ;
 	public float bodyBounce;
@@ -53,4 +66,8 @@ public final class FacePose {
 
 	/** True while talking (used for head motion when talking). */
 	public boolean talking;
+	/** 0..1 smooth "is talking" amount (rises with a pop, falls smoothly). */
+	public float talkEnergy;
+	/** 0..1 how much of the screaming face is showing (blends smoothly in and out). */
+	public float scream;
 }
