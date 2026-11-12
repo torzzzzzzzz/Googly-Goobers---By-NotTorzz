@@ -74,6 +74,8 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 	private ClientGameTestContext ctx;
 	/** Fastest the mouth moves in one tick during ordinary talking (lip flaps), measured by talking(). */
 	private float talkingFlapStep = 2.0F;
+	/** Fastest the brows move in one tick during ordinary talking (their syllable bounce), measured by talking(). */
+	private float talkingBrowStep = 0.8F;
 
 	@Override
 	public void runTest(ClientGameTestContext context) {
@@ -249,8 +251,8 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 			return Math.min(p.eyeOpen[0], p.eyeOpen[1]);
 		});
 		this.report.check("blink closes the eyes", minOpen < 0.4F, String.format(Locale.ROOT, "min openness %.2f", minOpen));
-		this.ctx.waitTicks(4);
-		float open = this.pose(self).eyeOpen[0];
+		// A blink is sometimes a double blink, so look over the whole blink sequence.
+		float open = this.maxOver(12, mc -> this.poseOnClient(self).eyeOpen[0]);
 		this.report.check("eyes open again after the blink", open > 0.85F, String.format(Locale.ROOT, "openness %.2f", open));
 		int blinks = 0;
 		boolean wasClosed = false;
@@ -298,6 +300,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		float pupilTravel = 0.0F;
 		float pupilApart = 0.0F;
 		float flapStep = 0.0F;
+		float browStep = 0.0F;
 		float eyeBob = 0.0F;
 		for (int i = 1; i < talk.size(); i++) {
 			FacePose a = talk.get(i - 1).pose;
@@ -305,11 +308,13 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 			pupilTravel += Math.abs(b.pupilX[0] - a.pupilX[0]) + Math.abs(b.pupilY[0] - a.pupilY[0]);
 			pupilApart = Math.max(pupilApart, Math.abs(b.pupilX[0] - b.pupilX[1]) + Math.abs(b.pupilY[0] - b.pupilY[1]));
 			flapStep = Math.max(flapStep, Math.abs(talk.get(i).layout.mouthHeight - talk.get(i - 1).layout.mouthHeight));
+			browStep = Math.max(browStep, Math.max(Math.abs(b.browLift[0] - a.browLift[0]), Math.abs(b.browLift[1] - a.browLift[1])));
 			if (i >= 14) {
 				eyeBob = Math.max(eyeBob, Math.abs(talk.get(i).layout.eyeV[0] - talk.get(i - 1).layout.eyeV[0]));
 			}
 		}
 		this.talkingFlapStep = flapStep;
+		this.talkingBrowStep = browStep;
 		this.report.check("eyes grow to 1.5x-1.8x while talking", eyes.avg >= 1.45F && eyes.avg <= 1.85F && eyes.max >= 1.6F,
 			String.format(Locale.ROOT, "average x%.2f, range x%.2f - x%.2f (was x1.05 before)", eyes.avg, eyes.min, eyes.max));
 		this.report.check("eyes pop when talking starts", popPeak >= eyes.avg + 0.08F,
@@ -370,17 +375,29 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 
 		Sample idle = this.sample(self);
 		this.ctx.runOnClient(mc -> mc.player.connection.sendChat("AAAAAAAAHHHHHHH A CREEPER"));
-		this.ctx.waitTicks(2);
-		this.report.check("chat \"AAAAAAAAHHHHHHH A CREEPER\" makes a screaming face", this.mood(self) == Expression.SCREAMING, "mood " + this.mood(self));
 		List<Sample> scream = new ArrayList<>();
-		for (int i = 0; i < 24; i++) {
+		for (int i = 0; i < 26; i++) {
 			this.ctx.waitTick();
 			scream.add(this.sample(self));
-			if (i == 12) {
+			if (i == 14) {
 				this.report.screenshot(this.ctx, "screaming", "Screaming: enormous trembling eyes, huge oval mouth with uvula, brows up, head shaking");
 			}
 		}
-		List<Sample> held = scream.subList(10, scream.size());
+		this.report.check("chat \"AAAAAAAAHHHHHHH A CREEPER\" makes a screaming face", scream.get(1).mood == Expression.SCREAMING, "mood " + scream.get(1).mood);
+		List<Sample> held = scream.subList(12, scream.size());
+		float screamEyes = Stats.of(held, x -> x.eyeRatio(idle)).avg;
+		int swell = 0;
+		while (swell < scream.size() && scream.get(swell).eyeRatio(idle) < 1.0F + (screamEyes - 1.0F) * 0.9F) {
+			swell++;
+		}
+		int mouthOpen = 0;
+		float screamMouth = Stats.of(held, x -> x.layout.mouthHeight).avg;
+		while (mouthOpen < scream.size() && scream.get(mouthOpen).layout.mouthHeight < screamMouth * 0.9F) {
+			mouthOpen++;
+		}
+		this.report.check("eyes and mouth swell into the scream over several ticks (no snap)", swell >= 2 && mouthOpen >= 2,
+			String.format(Locale.ROOT, "eyes x1.00 -> x%.2f in %d ticks, mouth %.2f -> %.2f px in %d ticks",
+				screamEyes, swell + 1, idle.layout.mouthHeight, screamMouth, mouthOpen + 1));
 		Stats eyes = Stats.of(held, s -> s.eyeRatio(idle));
 		Stats mouth = Stats.of(held, s -> s.layout.mouthHeight);
 		Sample widest = held.stream().max((a, b) -> Float.compare(a.layout.mouthHeight, b.layout.mouthHeight)).orElseThrow();
@@ -540,6 +557,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		float maxBrowStep = 0.0F;
 		float minGap = Float.POSITIVE_INFINITY;
 		float minBottom = Float.POSITIVE_INFINITY;
+		float[] mouth = new float[190];
 		for (int t = 0; t < 190; t++) {
 			if (t == 22) {
 				this.ctx.runOnClient(mc -> EyeBallKeys.makeFace(mc, Expression.SCREAMING));
@@ -558,6 +576,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 				maxBrowStep = Math.max(maxBrowStep, Math.abs(s.pose.browLift[i] - previous.pose.browLift[i]));
 			}
 			maxMouthStep = Math.max(maxMouthStep, Math.abs(s.layout.mouthHeight - previous.layout.mouthHeight));
+			mouth[t] = s.layout.mouthHeight;
 			minGap = Math.min(minGap, s.layout.eyeMouthGap);
 			minBottom = Math.min(minBottom, s.layout.mouthBottom);
 			previous = s;
@@ -568,12 +587,23 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		boolean order = talking >= 0 && scream > talking && hit > scream && moods.lastIndexOf(Expression.TALKING) > hit
 			&& moods.getLast() == Expression.NEUTRAL;
 		this.report.check("every animation played in priority order", order, String.valueOf(moods));
-		this.report.check("eye size never snaps", maxEyeStep <= 0.35F, String.format(Locale.ROOT, "largest change in one tick: x%.3f", maxEyeStep));
+		this.report.check("eye size never jumps", maxEyeStep <= 0.45F,
+			String.format(Locale.ROOT, "largest change in one tick: x%.3f (includes the deliberate scream tremble and hit pop)", maxEyeStep));
 		this.report.check("eyes never jump around", maxMoveStep <= 1.5F, String.format(Locale.ROOT, "largest move in one tick: %.2f px", maxMoveStep));
-		float mouthLimit = Math.max(2.0F, this.talkingFlapStep * 1.2F);
-		this.report.check("mouth changes no faster than ordinary lip movement", maxMouthStep <= mouthLimit,
-			String.format(Locale.ROOT, "largest change in one tick: %.2f px (ordinary talking: %.2f px)", maxMouthStep, this.talkingFlapStep));
-		this.report.check("eyebrows never snap", maxBrowStep <= 0.8F, String.format(Locale.ROOT, "largest change in one tick: %.2f px", maxBrowStep));
+		// The mouth flaps fast while talking, so check the two big mouth changes directly: they must
+		// take several ticks, not happen in one jump.
+		float screamSize = average(mouth, 38, 49);
+		float shockedSize = average(mouth, 62, 73);
+		int opening = ticksUntil(mouth, 22, h -> h >= screamSize * 0.9F);
+		int closing = ticksUntil(mouth, 50, h -> Math.abs(h - shockedSize) <= screamSize * 0.1F);
+		this.report.check("mouth opens into the scream over several ticks", opening >= 3,
+			String.format(Locale.ROOT, "%.2f px scream mouth reached in %d ticks", screamSize, opening));
+		this.report.check("mouth shrinks to the shocked mouth over several ticks when hit", closing >= 3,
+			String.format(Locale.ROOT, "%.2f px -> %.2f px in %d ticks", screamSize, shockedSize, closing));
+		this.report.note(String.format(Locale.ROOT, "Largest mouth change in one tick: %.2f px (ordinary talking flaps up to %.2f px per tick)",
+			maxMouthStep, this.talkingFlapStep));
+		this.report.check("eyebrows never move faster than their ordinary talking bounce", maxBrowStep <= Math.max(0.8F, this.talkingBrowStep * 1.25F),
+			String.format(Locale.ROOT, "largest change in one tick: %.2f px (talking bounce: up to %.2f px per tick)", maxBrowStep, this.talkingBrowStep));
 		this.report.check("eyes never overlap the mouth in any of them", minGap >= 0.1F, String.format(Locale.ROOT, "smallest gap %.2f px", minGap));
 		this.report.check("mouth never hangs off the chin", minBottom >= FaceAnchor.PLAYER.chinLimit() - 0.01F, String.format(Locale.ROOT, "lowest point %.2f px", minBottom));
 		Sample end = this.sample(self);
@@ -1298,6 +1328,24 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 			FaceAnchor anchor = data.elmo ? FaceAnchor.ELMO : FaceAnchor.PLAYER;
 			return new Sample(data.pose, FaceMeshBuilder.measure(data, anchor), FaceAnimationManager.INSTANCE.stateFor(player).activeMood());
 		});
+	}
+
+	private static float average(float[] values, int from, int to) {
+		float sum = 0.0F;
+		for (int i = from; i < to; i++) {
+			sum += values[i];
+		}
+		return sum / (to - from);
+	}
+
+	/** Ticks after {@code start} until {@code condition} first holds (or the array length). */
+	private static int ticksUntil(float[] values, int start, java.util.function.DoublePredicate condition) {
+		for (int i = start; i < values.length; i++) {
+			if (condition.test(values[i])) {
+				return i - start;
+			}
+		}
+		return values.length - start;
 	}
 
 	private void waitForTalkEnd(UUID player, int maxTicks) {

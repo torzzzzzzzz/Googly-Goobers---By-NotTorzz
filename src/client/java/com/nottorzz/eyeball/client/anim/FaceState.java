@@ -38,6 +38,9 @@ public final class FaceState {
 	static final float SCREAM_GROWTH = 0.9F;
 	/** Size pop (spring impulse) when talking starts. */
 	private static final float TALK_POP = 2.6F;
+	/** For the first ticks of talking the talk energy aims a little past full, for a visible pop. */
+	private static final float POP_ENERGY = 1.12F;
+	private static final int POP_TICKS = 3;
 	private static final float SCREAM_POP = 2.0F;
 	/** Voice loudness (0..1) that counts as yelling, and how long it must last to become a scream. */
 	private static final float SCREAM_LEVEL = 0.88F;
@@ -72,6 +75,7 @@ public final class FaceState {
 	private Expression activeMood = Expression.NEUTRAL;
 	private boolean wasTalking;
 	private boolean wasScreaming;
+	private int popTicks;
 	private float exaggeration = 1.0F;
 	/** Eye size of the last talking expression; it fades out with the talk energy afterwards. */
 	private float talkEyeScale = 1.0F;
@@ -231,12 +235,15 @@ public final class FaceState {
 
 		// Smooth blends: the scream fades in and out, and "talk energy" rises quickly (overshooting a
 		// little, for a pop) but falls slowly with no overshoot (the eyes shrink back smoothly).
-		this.scream.step(screaming ? 1.0F : 0.0F, (screaming ? 4.5F : 2.6F) * speed, screaming ? 0.6F : 1.0F, DT);
-		float energyTarget = mouthTalks ? 1.0F : 0.0F;
+		this.scream.step(screaming ? 1.0F : 0.0F, (screaming ? 2.0F : 2.6F) * speed, screaming ? 0.75F : 1.0F, DT);
+		float energyTarget = mouthTalks ? (this.popTicks > 0 ? POP_ENERGY : 1.0F) : 0.0F;
 		if (energyTarget > this.talkEnergy.value()) {
 			this.talkEnergy.step(energyTarget, 3.0F * speed, 0.6F, DT);
 		} else {
-			this.talkEnergy.step(energyTarget, 1.5F * speed, 1.0F, DT);
+			this.talkEnergy.step(energyTarget, (mouthTalks ? 3.0F : 1.3F) * speed, 1.0F, DT);
+		}
+		if (this.popTicks > 0) {
+			this.popTicks--;
 		}
 		float energy = Mth.clamp(this.talkEnergy.value(), 0.0F, 1.3F);
 		float screamAmount = Mth.clamp(this.scream.value(), 0.0F, 1.0F);
@@ -246,6 +253,7 @@ public final class FaceState {
 		if (!reacting) {
 			if (mouthTalks && !this.wasTalking) {
 				this.eyes.pop(TALK_POP * eyeGrowth);
+				this.popTicks = POP_TICKS;
 				if (config.eyeMovement) {
 					this.eyes.shakePupils(2.5F * ex);
 				}
@@ -266,7 +274,7 @@ public final class FaceState {
 		if (mouthTalks) {
 			this.accentSmooth.step(this.mouth.accent(), 9.0F * speed, 0.65F, DT);
 		} else {
-			this.accentSmooth.step(0.0F, 1.8F * speed, 1.0F, DT);
+			this.accentSmooth.step(0.0F, 1.5F * speed, 1.0F, DT);
 		}
 		float accent = Mth.clamp(this.accentSmooth.value(), 0.0F, 1.2F);
 		if (mouthTalks && config.eyeMovement && this.mouth.syllableStarted()) {
@@ -300,7 +308,7 @@ public final class FaceState {
 		// After talking the eyes deflate gently (no springy undershoot); otherwise they stay bouncy.
 		boolean relaxing = !mouthTalks && !reacting && energy > 0.01F;
 		this.eyes.tick(in, profile, profileIntensity, growth, relaxing ? 0.8F : 0.36F, config.eyeMovement, blinkAllowed, speed, DT);
-		this.brows.tick(profile, profileIntensity, config.eyebrowAnimations, mouthTalks, accent, reacting,
+		this.brows.tick(profile, profileIntensity, config.eyebrowAnimations, energy, accent, reacting,
 			this.eyes.blinkClosedness(0.0F), screamAmount, ex, time, speed, DT);
 		this.reaction.tick(config, speed, DT);
 

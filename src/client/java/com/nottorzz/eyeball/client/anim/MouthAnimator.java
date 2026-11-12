@@ -19,8 +19,6 @@ public final class MouthAnimator {
 	private static final float SOFT_KNEE = 0.9F;
 	/** Largest opening (1 = the face's normal maximum, more only with the sliders turned up). */
 	public static final float MAX_OPEN = 1.3F;
-	/** Fastest the mouth may open or close in one tick (at 1x animation speed): a bit above ordinary lip flaps. */
-	private static final float MAX_STEP = 0.7F;
 
 	/** Mouth shapes used while talking. */
 	enum Shape {
@@ -52,9 +50,10 @@ public final class MouthAnimator {
 	private final Spring dShape = new Spring(0.0F);
 	private final Spring teeth = new Spring(0.0F);
 	/**
-	 * The widest the mouth has been recently: follows the opening up quickly and comes back down
-	 * slowly. The face layout keeps the eyes clear of this, so big eyes sit still above a flapping
-	 * mouth instead of bobbing with every syllable.
+	 * How far the mouth may open right now: while talking, the widest syllable the current face can
+	 * make; otherwise the actual opening, coming back down smoothly. The face layout keeps the eyes
+	 * clear of this, so big eyes rise once when talking starts and then sit still above the
+	 * flapping mouth instead of bobbing with every syllable.
 	 */
 	private final Spring reach = new Spring(0.0F);
 	private final Random random;
@@ -96,6 +95,15 @@ public final class MouthAnimator {
 		if (talking && !dizzy) {
 			shapeMix = (1.0F - Mth.clamp(Math.abs(profile.smile()) * 0.4F + profile.dShape() * 0.5F, 0.0F, 0.7F)) * (1.0F - scream);
 		}
+		// The widest this mouth can open with the current face (for the eye layout, see reach).
+		float expected = base;
+		if (talking && !dizzy) {
+			float shapeMax = Mth.lerp(shapeMix, 0.8F, 1.0F);
+			expected = voiceLevel >= 0.0F
+				? base * 0.5F + amount * shapeMax * (0.35F + profile.talkAmplitude() * 0.8F)
+				: base + profile.talkAmplitude() * shapeMax * amount * (0.55F + 0.45F * Math.min(intensity, 1.5F));
+			expected = Math.max(expected, base);
+		}
 		if (dizzy) {
 			// Shocked, trembling open mouth.
 			openTarget = profile.mouthBase() + Mth.sin(time * 31.0F) * 0.05F;
@@ -136,13 +144,12 @@ public final class MouthAnimator {
 		}
 
 		this.open.step(softClamp(Math.max(0.0F, openTarget)), 11.0F * speed, 0.6F, dt);
-		this.open.limitStep(MAX_STEP * speed);
-		float opened = Math.max(0.0F, this.open.value());
-		if (opened > this.reach.value()) {
-			this.reach.step(opened * 1.06F, 9.0F * speed, 1.0F, dt);
+		float reachTarget = Math.max(softClamp(expected), Math.max(0.0F, this.open.value()) * 1.06F);
+		if (reachTarget > this.reach.value()) {
+			this.reach.step(reachTarget, 9.0F * speed, 1.0F, dt);
 		} else {
 			// Hold while talking (so the eyes stay put between syllables), let go smoothly afterwards.
-			this.reach.step(opened, (talking ? 0.25F : 1.6F) * speed, 1.0F, dt);
+			this.reach.step(reachTarget, (talking ? 0.25F : 1.6F) * speed, 1.0F, dt);
 		}
 		float widthTarget = ExpressionProfile.scaled(1.0F, profile.mouthWidth(), intensity)
 			* Mth.lerp(shapeMix, 1.0F, this.shape.width) * (1.0F + this.accent * 0.08F);

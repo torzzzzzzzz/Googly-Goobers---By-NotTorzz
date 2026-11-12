@@ -61,18 +61,6 @@ public final class Spring {
 		}
 	}
 
-	/**
-	 * Caps how far the value may have moved since {@link #beginTick} (a speed limit for the few
-	 * cases where even a fast spring should not move faster, e.g. the mouth during a big change).
-	 */
-	public void limitStep(float maxStep) {
-		float moved = this.value - this.previous;
-		if (Math.abs(moved) > maxStep) {
-			this.value = this.previous + Math.copySign(maxStep, moved);
-			this.velocity *= 0.5F;
-		}
-	}
-
 	/** Adds instantaneous velocity (units per second). */
 	public void kick(float impulse) {
 		if (Float.isFinite(impulse)) {
