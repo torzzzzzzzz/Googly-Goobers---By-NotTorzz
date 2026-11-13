@@ -1,16 +1,16 @@
 package com.nottorzz.eyeball.client.gui.widget;
 
+import com.nottorzz.eyeball.client.compat.CompatButton;
+import com.nottorzz.eyeball.client.compat.Gfx;
 import com.nottorzz.eyeball.client.gui.PreviewController;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.InputWithModifiers;
 
 /** A pill button that selects what the preview shows; the selected one is highlighted. */
-public final class PreviewModeButton extends AbstractButton {
+public final class PreviewModeButton extends CompatButton {
 	private final PreviewController.Mode mode;
 	private final Supplier<PreviewController.Mode> current;
 	private final Consumer<PreviewController.Mode> select;
@@ -29,7 +29,7 @@ public final class PreviewModeButton extends AbstractButton {
 	}
 
 	@Override
-	protected void extractContents(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
+	protected void drawContents(Gfx g, int mouseX, int mouseY, float a) {
 		boolean selected = this.current.get() == this.mode;
 		boolean hover = this.isHoveredOrFocused();
 		int background = selected ? GuiDraw.ACCENT : hover ? 0xFF3A3F4B : 0xFF2A2D36;

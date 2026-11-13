@@ -2,10 +2,13 @@
 	"schemaVersion": 1,
 	"id": "eyeball-gametest",
 	"version": "1.0.0",
-	"name": "EyeBall Mod Game Tests",
-	"description": "Automated in-game tests for EyeBall Mod (not shipped).",
+	"name": "Googly Goobers Game Tests",
+	"description": "Automated in-game tests for Googly Goobers (not shipped).",
 	"environment": "*",
 	"entrypoints": {
+		"main": [
+			"com.nottorzz.eyeball.gametest.compat.TestSync"
+		],
 		"fabric-client-gametest": [
 			"com.nottorzz.eyeball.gametest.EyeBallClientGameTest"
 		]

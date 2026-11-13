@@ -11,7 +11,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /**
  * Server to client: the server-side looks of players (self-chosen looks merged with looks forced
- * by an operator through {@code /eyeball}).
+ * by an operator through {@code /googlygoobers}).
  *
  * @param replaceAll true for a full snapshot (sent on join), false for a delta
  * @param entries    per-player {@link com.nottorzz.eyeball.Appearance} flags; flags of 0 clear a player

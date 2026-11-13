@@ -14,7 +14,6 @@ public final class FaceRenderData {
 	public static final RenderStateDataKey<FaceRenderData> KEY = RenderStateDataKey.create(() -> "eyeball:face");
 
 	public final boolean googly;
-	public final boolean elmo;
 	public final boolean showBrows;
 	public final FacePose pose;
 	public final float eyeSize;
@@ -28,8 +27,6 @@ public final class FaceRenderData {
 
 	public FaceRenderData(int flags, FacePose pose, EyeBallConfig config, double distanceSq) {
 		this.googly = Appearance.googly(flags);
-		this.elmo = Appearance.elmo(flags);
-		// Elmo has no eyebrows of his own; brows come with the googly-eyes look.
 		this.showBrows = config.eyebrows && this.googly;
 		this.pose = pose;
 		this.eyeSize = config.eyeSize;

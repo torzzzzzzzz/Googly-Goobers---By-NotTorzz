@@ -1,6 +1,9 @@
 package com.nottorzz.eyeball.client.gui;
 
 import com.nottorzz.eyeball.EyeBallMod;
+import com.nottorzz.eyeball.client.compat.CompatScreen;
+import com.nottorzz.eyeball.client.compat.Gfx;
+import com.nottorzz.eyeball.client.compat.McCompat;
 import com.nottorzz.eyeball.client.config.ConfigManager;
 import com.nottorzz.eyeball.client.config.EyeBallConfig;
 import com.nottorzz.eyeball.client.gui.widget.GuiDraw;
@@ -17,11 +20,9 @@ import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleFunction;
 import java.util.function.DoubleSupplier;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
@@ -30,13 +31,13 @@ import net.minecraft.util.Util;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The EyeBall settings menu: grouped ON/OFF switches and sliders on the left, a live, rotatable
+ * The Googly Goobers settings menu: grouped ON/OFF switches and sliders on the left, a live, rotatable
  * character preview with preview buttons on the right, and Reset / Save / Done at the bottom.
  * <p>
  * Every change applies immediately (the renderer reads the settings every frame). Settings are
  * written to disk by "Save Settings", by "Done" and when the menu is closed with Escape.
  */
-public class EyeBallConfigScreen extends Screen {
+public class EyeBallConfigScreen extends CompatScreen {
 	private static final Identifier ICON = EyeBallMod.id("icon.png");
 	private static final int MARGIN = 8;
 	private static final int HEADER = 32;
@@ -109,9 +110,8 @@ public class EyeBallConfigScreen extends Screen {
 
 	private void buildSettings(EyeBallConfig c) {
 		SettingsList l = this.list;
-		l.addSection(Component.translatable("eyeball.menu.section.modes"));
+		l.addSection(Component.translatable("eyeball.menu.section.main"));
 		l.addWidget(this.toggle("googly_eyes", () -> c.googlyEyes, v -> c.googlyEyes = v));
-		l.addWidget(this.toggle("elmo", () -> c.elmo, v -> c.elmo = v));
 
 		l.addSection(Component.translatable("eyeball.menu.section.animations"));
 		l.addWidget(this.toggle("talking", () -> c.talkingAnimations, v -> c.talkingAnimations = v));
@@ -164,15 +164,10 @@ public class EyeBallConfigScreen extends Screen {
 			() -> c.expressionIntensity, v -> c.expressionIntensity = (float) v, EyeBallConfigScreen::times));
 
 		l.addSection(Component.translatable("eyeball.menu.section.targets"));
-		l.addColumnHeader(Component.translatable("eyeball.menu.column.googly"), Component.translatable("eyeball.menu.column.elmo"));
-		l.addPair(Component.translatable("eyeball.option.apply_to_myself"),
-			this.cell("apply_to_myself", "eyeball.menu.column.googly", () -> c.selfGoogly, v -> c.selfGoogly = v),
-			this.cell("apply_to_myself", "eyeball.menu.column.elmo", () -> c.selfElmo, v -> c.selfElmo = v));
-		l.addPair(Component.translatable("eyeball.option.apply_to_everyone"),
-			this.cell("apply_to_everyone", "eyeball.menu.column.googly", () -> c.everyoneGoogly, v -> c.everyoneGoogly = v),
-			this.cell("apply_to_everyone", "eyeball.menu.column.elmo", () -> c.everyoneElmo, v -> c.everyoneElmo = v));
+		l.addWidget(this.toggle("apply_to_myself", () -> c.selfGoogly, v -> c.selfGoogly = v));
+		l.addWidget(this.toggle("apply_to_everyone", () -> c.everyoneGoogly, v -> c.everyoneGoogly = v));
 		l.addWidget(Button.builder(Component.translatable("eyeball.menu.player_selection"),
-			button -> this.minecraft.gui.setScreen(new PlayerSelectionScreen(this))).build());
+			button -> McCompat.setScreen(this.minecraft, new PlayerSelectionScreen(this))).build());
 
 		l.addSection(Component.translatable("eyeball.menu.section.multiplayer"));
 		l.addWidget(this.toggle("show_synced", () -> c.showSyncedLooks, v -> c.showSyncedLooks = v));
@@ -188,15 +183,6 @@ public class EyeBallConfigScreen extends Screen {
 			setter.accept(value);
 			this.changed();
 		}, tooltip);
-	}
-
-	private ToggleSwitch cell(String rowKey, String columnKey, BooleanSupplier getter, Consumer<Boolean> setter) {
-		Component tooltip = Component.translatable("eyeball.option." + rowKey + ".tooltip");
-		return new ToggleSwitch(0, 0, 40, 20,
-			Component.empty(), getter, value -> {
-			setter.accept(value);
-			this.changed();
-		}, Component.translatable(columnKey).append(" - ").append(tooltip));
 	}
 
 	private ValueSlider slider(String key, double min, double max, double step, DoubleSupplier getter, DoubleConsumer setter, DoubleFunction<String> format) {
@@ -257,13 +243,12 @@ public class EyeBallConfigScreen extends Screen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
-		super.extractRenderState(g, mouseX, mouseY, a);
+	protected void drawScreen(Gfx g, int mouseX, int mouseY, float a) {
 		Component title = this.title.copy().withStyle(style -> style.withBold(true));
 		Component subtitle = Component.translatable("eyeball.menu.subtitle");
 		int titleWidth = this.font.width(title);
 		int x = (this.width - titleWidth - 22) / 2;
-		g.blit(RenderPipelines.GUI_TEXTURED, ICON, x, 5, 0.0F, 0.0F, 18, 18, 18, 18);
+		g.blitTexture(ICON, x, 5, 18, 18);
 		g.text(this.font, title, x + 22, 6, GuiDraw.ACCENT, true);
 		g.text(this.font, subtitle, x + 22, 17, 0xFFE4E6EC, true);
 	}
@@ -272,7 +257,7 @@ public class EyeBallConfigScreen extends Screen {
 	public void onClose() {
 		ConfigManager.save();
 		ConfigManager.notifyChanged();
-		this.minecraft.gui.setScreen(this.parent);
+		McCompat.setScreen(this.minecraft, this.parent);
 	}
 
 	/** For tests: the preview controller. */

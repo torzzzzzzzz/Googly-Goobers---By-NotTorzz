@@ -1,6 +1,6 @@
 package com.nottorzz.eyeball.client.gui.widget;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import com.nottorzz.eyeball.client.compat.Gfx;
 
 /** Small drawing helpers for the menu's rounded, flat style. */
 public final class GuiDraw {
@@ -20,7 +20,7 @@ public final class GuiDraw {
 	}
 
 	/** A filled rectangle with rounded corners (radius in GUI pixels, up to 4). */
-	public static void roundedRect(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int color) {
+	public static void roundedRect(Gfx g, int x, int y, int w, int h, int radius, int color) {
 		int r = Math.min(radius, Math.min(w, h) / 2);
 		if (r <= 0) {
 			g.fill(x, y, x + w, y + h, color);
@@ -39,7 +39,7 @@ public final class GuiDraw {
 	}
 
 	/** A panel with a 1 pixel border. */
-	public static void panel(GuiGraphicsExtractor g, int x, int y, int w, int h) {
+	public static void panel(Gfx g, int x, int y, int w, int h) {
 		roundedRect(g, x, y, w, h, 4, PANEL_BORDER);
 		roundedRect(g, x + 1, y + 1, w - 2, h - 2, 3, PANEL);
 	}

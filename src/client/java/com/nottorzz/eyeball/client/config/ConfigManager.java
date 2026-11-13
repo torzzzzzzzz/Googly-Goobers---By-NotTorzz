@@ -21,11 +21,14 @@ import net.fabricmc.loader.api.FabricLoader;
  * restarts. The config object is mutated in place, so every system always sees current values.
  */
 public final class ConfigManager {
-	public static final String FILE_NAME = "eyeball.json";
+	public static final String FILE_NAME = "googlygoobers.json";
+	/** File name used by pre-release builds; migrated once on first launch. */
+	public static final String LEGACY_FILE_NAME = "eyeball.json";
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().serializeNulls().create();
 	private static final EyeBallConfig CONFIG = EyeBallConfig.defaults();
 	private static final List<Runnable> LISTENERS = new ArrayList<>();
 	private static final Path PATH = FabricLoader.getInstance().getConfigDir().resolve(FILE_NAME);
+	private static final Path LEGACY_PATH = FabricLoader.getInstance().getConfigDir().resolve(LEGACY_FILE_NAME);
 
 	private ConfigManager() {
 	}
@@ -44,6 +47,7 @@ public final class ConfigManager {
 	}
 
 	public static void load() {
+		migrateLegacyFile();
 		EyeBallConfig loaded = readFrom(PATH);
 		if (loaded == null) {
 			CONFIG.copyFrom(EyeBallConfig.defaults());
@@ -52,6 +56,19 @@ public final class ConfigManager {
 			CONFIG.copyFrom(loaded);
 		}
 		notifyChanged();
+	}
+
+	/** Renames a config file written by a pre-release build to the current file name (once). */
+	private static void migrateLegacyFile() {
+		if (Files.isRegularFile(PATH) || !Files.isRegularFile(LEGACY_PATH)) {
+			return;
+		}
+		try {
+			Files.move(LEGACY_PATH, PATH);
+			EyeBallMod.LOGGER.info("Moved settings from {} to {}", LEGACY_PATH.getFileName(), PATH.getFileName());
+		} catch (IOException e) {
+			EyeBallMod.LOGGER.warn("Could not move old settings file {}", LEGACY_PATH, e);
+		}
 	}
 
 	/** Reads a config file; returns null when missing, and backs up and ignores a broken file. */
@@ -90,7 +107,7 @@ public final class ConfigManager {
 				Files.move(tmp, PATH, StandardCopyOption.REPLACE_EXISTING);
 			}
 		} catch (IOException e) {
-			EyeBallMod.LOGGER.error("Could not save EyeBall settings to {}", PATH, e);
+			EyeBallMod.LOGGER.error("Could not save Googly Goobers settings to {}", PATH, e);
 		}
 	}
 

@@ -1,5 +1,6 @@
 package com.nottorzz.eyeball.client.target;
 
+import com.nottorzz.eyeball.Appearance;
 import com.nottorzz.eyeball.network.AppearanceSyncPayload;
 import com.nottorzz.eyeball.network.SelfAppearancePayload;
 import java.util.HashMap;
@@ -10,7 +11,7 @@ import net.minecraft.client.Minecraft;
 
 /**
  * Client copy of the looks the server shares (players' own choices and operator-forced looks).
- * Only filled when the server runs EyeBall. Accessed on the client thread only.
+ * Only filled when the server runs Googly Goobers. Accessed on the client thread only.
  */
 public final class SyncedLooks {
 	private static final Map<UUID, Integer> LOOKS = new HashMap<>();
@@ -23,7 +24,8 @@ public final class SyncedLooks {
 			LOOKS.clear();
 		}
 		for (AppearanceSyncPayload.Entry entry : payload.entries()) {
-			int flags = entry.flags() & 0xFF;
+			// Unknown bits (from other builds) are ignored.
+			int flags = entry.flags() & Appearance.SYNC_MASK;
 			if (flags == 0) {
 				LOOKS.remove(entry.player());
 			} else {
@@ -40,7 +42,7 @@ public final class SyncedLooks {
 		LOOKS.clear();
 	}
 
-	/** True when connected to a server that has EyeBall installed (so looks are shared). */
+	/** True when connected to a server that has Googly Goobers installed (so looks are shared). */
 	public static boolean serverHasMod() {
 		Minecraft minecraft = Minecraft.getInstance();
 		if (minecraft.getConnection() == null) {

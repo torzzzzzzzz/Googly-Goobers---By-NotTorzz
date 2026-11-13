@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-/** Attaches the face to each player's render state, and adds the hit stagger / Elmo walk bounce. */
+/** Attaches the face to each player's render state, and adds the hit stagger. */
 @Mixin(AvatarRenderer.class)
 public abstract class AvatarRendererMixin {
 	@Inject(

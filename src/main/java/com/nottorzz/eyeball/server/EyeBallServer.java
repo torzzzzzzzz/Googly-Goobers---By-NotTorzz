@@ -8,6 +8,7 @@ import com.nottorzz.eyeball.network.AppearanceSyncPayload;
 import com.nottorzz.eyeball.network.FaceEventPayload;
 import com.nottorzz.eyeball.network.PlayerFaceEventPayload;
 import com.nottorzz.eyeball.network.SelfAppearancePayload;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,14 +29,16 @@ import org.jspecify.annotations.Nullable;
  * server (or in singleplayer, where the integrated server runs it).
  * <ul>
  *     <li>Remembers the look each modded player chose for themselves and shares it with other modded players.</li>
- *     <li>Applies looks forced by operators ({@code /eyeball}), persisted per world.</li>
+ *     <li>Applies looks forced by operators ({@code /googlygoobers}), persisted per world.</li>
  *     <li>Relays talk / expression events to nearby modded players, with rate limiting.</li>
  * </ul>
  * Players without the mod are never sent anything, and cannot see the effects.
  * All state is only touched from the server thread.
  */
 public final class EyeBallServer {
-	private static final String FORCED_FILE = "eyeball_forced_looks.json";
+	private static final String FORCED_FILE = "googlygoobers_forced_looks.json";
+	/** File name used by pre-release builds; read once and migrated. */
+	private static final String LEGACY_FORCED_FILE = "eyeball_forced_looks.json";
 	private static final int MAX_EVENT_TICKS = 200;
 	private static final double EVENT_TOKENS_PER_TICK = 3.0 / 20.0;
 	private static final double EVENT_BUCKET_SIZE = 6.0;
@@ -51,7 +54,8 @@ public final class EyeBallServer {
 	public static void init() {
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
 			currentServer = server;
-			forced = ForcedLookStore.load(server.getWorldPath(LevelResource.ROOT).resolve(FORCED_FILE));
+			Path worldDir = server.getWorldPath(LevelResource.ROOT);
+			forced = ForcedLookStore.load(worldDir.resolve(FORCED_FILE), worldDir.resolve(LEGACY_FORCED_FILE));
 		});
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
 			forced.save();

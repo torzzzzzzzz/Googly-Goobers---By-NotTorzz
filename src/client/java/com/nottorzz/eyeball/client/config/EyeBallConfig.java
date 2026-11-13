@@ -6,7 +6,7 @@ import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Every user setting. Serialised to {@code config/eyeball.json} by {@link ConfigManager}.
+ * Every user setting. Serialised to {@code config/googlygoobers.json} by {@link ConfigManager}.
  * Changes take effect immediately because the renderer reads these fields every frame.
  */
 public final class EyeBallConfig {
@@ -25,9 +25,8 @@ public final class EyeBallConfig {
 	public static final float MOUTH_OPENING_MIN = 0.25F, MOUTH_OPENING_MAX = 2.0F;
 	public static final float EXAGGERATION_MIN = 0.25F, EXAGGERATION_MAX = 2.0F;
 
-	// --- Modes ---
+	// --- Main switch ---
 	public boolean googlyEyes = true;
-	public boolean elmo = false;
 
 	// --- Animations ---
 	public boolean talkingAnimations = true;
@@ -64,11 +63,9 @@ public final class EyeBallConfig {
 	/** Multiplies all cartoon motion: eye growth and pops, mouth opening, eyebrow bounce, head bobbing and shaking. */
 	public float exaggeration = 1.0F;
 
-	// --- Targets (per effect, so Googly Eyes and Elmo are independently controllable) ---
+	// --- Targets ---
 	public boolean selfGoogly = true;
-	public boolean selfElmo = true;
 	public boolean everyoneGoogly = true;
-	public boolean everyoneElmo = false;
 	/** Show the looks other modded players chose (or the server applied). Needs the mod on the server. */
 	public boolean showSyncedLooks = true;
 	/** Tell the server which look you chose, so other modded players see it. */
@@ -97,7 +94,6 @@ public final class EyeBallConfig {
 	/** Copies every value from {@code other} (used by "Reset to Defaults" and when loading). */
 	public void copyFrom(EyeBallConfig other) {
 		this.googlyEyes = other.googlyEyes;
-		this.elmo = other.elmo;
 		this.talkingAnimations = other.talkingAnimations;
 		this.eyebrows = other.eyebrows;
 		this.eyebrowAnimations = other.eyebrowAnimations;
@@ -123,9 +119,7 @@ public final class EyeBallConfig {
 		this.mouthOpening = other.mouthOpening;
 		this.exaggeration = other.exaggeration;
 		this.selfGoogly = other.selfGoogly;
-		this.selfElmo = other.selfElmo;
 		this.everyoneGoogly = other.everyoneGoogly;
-		this.everyoneElmo = other.everyoneElmo;
 		this.showSyncedLooks = other.showSyncedLooks;
 		this.shareMyLook = other.shareMyLook;
 		this.playerOverrides = new LinkedHashMap<>();
@@ -175,17 +169,15 @@ public final class EyeBallConfig {
 	public static final class PlayerOverride {
 		public String name = "";
 		public @Nullable Boolean googly;
-		public @Nullable Boolean elmo;
 
 		public boolean isEmpty() {
-			return this.googly == null && this.elmo == null;
+			return this.googly == null;
 		}
 
 		public PlayerOverride copy() {
 			PlayerOverride copy = new PlayerOverride();
 			copy.name = this.name;
 			copy.googly = this.googly;
-			copy.elmo = this.elmo;
 			return copy;
 		}
 	}

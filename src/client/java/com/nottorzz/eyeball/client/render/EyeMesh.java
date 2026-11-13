@@ -8,7 +8,7 @@ import net.minecraft.util.Mth;
  * Googly style (matches the reference pictures): a short cylinder sticking out of the face with a
  * black plastic side and lip, a domed white front with soft edge shading, and a big black pupil
  * with shiny highlights draped over the dome. Spiral style replaces the pupil with a thick black
- * hypnotic spiral (and turns the lip grey). Elmo style is a softer white eye with a thin outline.
+ * hypnotic spiral (and turns the lip grey).
  * <p>
  * Blinking squashes the eye vertically (a classic cartoon blink); normals are corrected for it.
  */
@@ -16,8 +16,6 @@ public final class EyeMesh {
 	private static final int GOOGLY_RIM = 0x15151A;
 	private static final int GOOGLY_LIP = 0x0E0E12;
 	private static final int SPIRAL_LIP = 0x8C8C96;
-	private static final int ELMO_RIM = 0xEDEDEF;
-	private static final int ELMO_LIP = 0x2A1C1C;
 	private static final int WHITE_CENTER = 0xFFFFFF;
 	private static final int WHITE_EDGE = 0xCCD2DE;
 	private static final int PUPIL = 0x0A0A0D;
@@ -45,7 +43,6 @@ public final class EyeMesh {
 	public boolean spiral;
 	public float spiralAngle;
 	public float spiralGrow = 1.0F;
-	public boolean elmoStyle;
 
 	// Derived values.
 	private float sx;
@@ -59,16 +56,16 @@ public final class EyeMesh {
 		int n = this.segments;
 		this.sy = Math.max(0.05F, this.open);
 		this.sx = 1.0F + (1.0F - this.sy) * 0.1F;
-		float lip = this.elmoStyle ? 0.09F : 0.2F;
+		float lip = 0.2F;
 		float r = this.radius;
 		this.innerRadius = r * (1.0F - lip);
 		float front = this.base + this.depth;
-		float bevel = this.elmoStyle ? 0.05F : 0.12F;
+		float bevel = 0.12F;
 		this.domeBaseW = front + bevel;
 		float h = Math.max(0.05F, this.dome);
 		this.sphereRadius = (this.innerRadius * this.innerRadius + h * h) / (2.0F * h);
-		int rim = MeshWriter.argb(this.elmoStyle ? ELMO_RIM : GOOGLY_RIM);
-		int lipColor = MeshWriter.argb(this.spiral ? SPIRAL_LIP : this.elmoStyle ? ELMO_LIP : GOOGLY_LIP);
+		int rim = MeshWriter.argb(GOOGLY_RIM);
+		int lipColor = MeshWriter.argb(this.spiral ? SPIRAL_LIP : GOOGLY_LIP);
 		float cu = this.centerU;
 		float cv = this.centerV;
 

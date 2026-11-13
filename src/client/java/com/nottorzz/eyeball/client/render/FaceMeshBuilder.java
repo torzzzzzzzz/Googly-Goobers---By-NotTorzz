@@ -4,7 +4,7 @@ import com.nottorzz.eyeball.client.anim.FacePose;
 import net.minecraft.util.Mth;
 
 /**
- * Assembles a whole face (eyes, brows, mouth, nose, stars) from a {@link FaceRenderData}.
+ * Assembles a whole face (eyes, brows, mouth, stars) from a {@link FaceRenderData}.
  * Runs on the render thread when the deferred geometry is drawn; the mesh helpers are reused.
  * <p>
  * Talking and screaming make the features much bigger than the head has room for, so the face is
@@ -82,19 +82,10 @@ public final class FaceMeshBuilder {
 		float open = pose.mouthOpen;
 		float smile = pose.mouthSmile;
 		float dShape = pose.mouthDShape;
-		if (data.elmo) {
-			// Elmo's big black half-moon mouth is always a little open (and goes round when he screams).
-			open = 0.18F + 0.82F * open;
-			dShape = Math.max(dShape, 0.55F * (1.0F - pose.scream));
-			smile = smile + 0.25F * (1.0F - pose.scream);
-		}
 		// The space the eyes keep clear of: the widest recent mouth, round-topped and wide (the most room
 		// it could need), so the eyes don't bob up and down with every syllable.
 		float reach = Math.max(pose.mouthReach, pose.mouthOpen);
-		if (data.elmo) {
-			reach = 0.18F + 0.82F * reach;
-		}
-		shapeMouth(anchor, data, 1.15F, reach, smile, data.elmo ? dShape : 0.0F);
+		shapeMouth(anchor, data, 1.15F, reach, smile, 0.0F);
 		System.arraycopy(MOUTH.xs, 0, CLEAR_XS, 0, CLEAR_XS.length);
 		System.arraycopy(MOUTH.top, 0, CLEAR_TOP, 0, CLEAR_TOP.length);
 		// The mouth that is drawn. Opening wider also stretches it sideways a little.
@@ -108,7 +99,7 @@ public final class FaceMeshBuilder {
 		out.mouthBottom = MOUTH.lowest();
 
 		// ---------- Eyes ----------
-		float baseRadius = anchor.eyeRadius() * eyeSize * (data.googly && data.elmo ? 1.08F : 1.0F);
+		float baseRadius = anchor.eyeRadius() * eyeSize;
 		float spacing = anchor.eyeSpacing() * data.eyeSpacing * (0.8F + 0.2F * eyeSize);
 		float restV = anchor.eyeY() + (baseRadius - anchor.eyeRadius()) * 0.35F;
 		out.baseEyeRadius = baseRadius;
@@ -145,7 +136,7 @@ public final class FaceMeshBuilder {
 	private static float shapeMouth(FaceAnchor anchor, FaceRenderData data, float widthFactor, float open, float smile, float dShape) {
 		float width = anchor.mouthWidth() * data.mouthSize * widthFactor * (1.0F + 0.14F * Math.min(open, 1.2F));
 		float height = Math.min(anchor.mouthHeight() * data.mouthSize * open, anchor.halfHeight() * 1.75F);
-		MOUTH.shape(0.0F, anchor.mouthY(), width, height, smile, dShape, data.elmo);
+		MOUTH.shape(0.0F, anchor.mouthY(), width, height, smile, dShape);
 		float overhang = anchor.chinLimit() - MOUTH.lowest();
 		if (overhang > 0.0F) {
 			MOUTH.shift(overhang);
@@ -190,7 +181,6 @@ public final class FaceMeshBuilder {
 	private static void buildFace(MeshWriter w, FaceRenderData data, FaceAnchor anchor) {
 		FacePose pose = data.pose;
 		int segments = data.roundSegments();
-		boolean googlyStyle = data.googly;
 		float eyeSize = data.eyeSize;
 		FaceLayout layout = LAYOUT;
 		layout(data, anchor, layout);
@@ -211,11 +201,10 @@ public final class FaceMeshBuilder {
 			EYE.pupilX = pose.pupilX[i];
 			EYE.pupilY = pose.pupilY[i];
 			// Pupils grow less than the eyes, so wide eyes show more white.
-			EYE.pupilFraction = 0.46F * data.pupilSize * pose.pupilScale * (googlyStyle ? 1.0F : 1.08F) / (float) Math.pow(scale, 0.45);
+			EYE.pupilFraction = 0.46F * data.pupilSize * pose.pupilScale / (float) Math.pow(scale, 0.45);
 			EYE.spiral = pose.spiral;
 			EYE.spiralAngle = pose.spiralAngle;
 			EYE.spiralGrow = pose.spiralGrow;
-			EYE.elmoStyle = !googlyStyle;
 			EYE.build(w, segments);
 		}
 
@@ -242,16 +231,8 @@ public final class FaceMeshBuilder {
 			}
 		}
 
-		// ---------- Nose (Elmo) ----------
-		if (data.elmo) {
-			int lat = Math.max(6, segments / 3);
-			int lon = Math.max(10, segments / 2 + 2);
-			NoseMesh.build(w, 0.0F, anchor.noseY(), anchor.noseCenterW(), anchor.noseRadiusX(), anchor.noseRadiusY(), anchor.noseRadiusZ(), lat, lon);
-		}
-
 		// ---------- Mouth (outline already laid out) ----------
-		MOUTH.draw(w, 0.0F, layout.mouthWidth, data.elmo ? 0.0F : pose.mouthTeeth, pose.mouthUvula,
-			anchor.mouthFront(), anchor.mouthBack(), data.elmo);
+		MOUTH.draw(w, 0.0F, layout.mouthWidth, pose.mouthTeeth, pose.mouthUvula, anchor.mouthFront(), anchor.mouthBack());
 
 		// ---------- Cartoon stars ----------
 		if (pose.stars > 0.02F) {

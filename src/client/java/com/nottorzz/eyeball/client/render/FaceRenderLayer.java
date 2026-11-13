@@ -14,8 +14,7 @@ import net.minecraft.util.Mth;
 import org.joml.Quaternionf;
 
 /**
- * Draws the cartoon face on a player model. Attached to every player renderer (wide and slim arms)
- * and to the Elmo renderer.
+ * Draws the cartoon face on a player model. Attached to every player renderer (wide and slim arms).
  * <p>
  * The geometry is built in the head bone's own space (root transform, then head transform, exactly
  * like vanilla head layers), so the face follows every head rotation, crouch, swim and animation,
@@ -45,8 +44,8 @@ public final class FaceRenderLayer extends RenderLayer<AvatarRenderState, Player
 			return;
 		}
 		long start = System.nanoTime();
-		FaceAnchor anchor = data.elmo ? FaceAnchor.ELMO : FaceAnchor.PLAYER;
-		float forward = headwearOffset(state, data);
+		FaceAnchor anchor = FaceAnchor.PLAYER;
+		float forward = headwearOffset(state);
 
 		poseStack.pushPose();
 		model.root().translateAndRotate(poseStack);
@@ -56,7 +55,7 @@ public final class FaceRenderLayer extends RenderLayer<AvatarRenderState, Player
 		// Model space -> face space: u = +x, v = up, w = out of the face.
 		// (Pose.rotate is used directly because it exists in every supported Minecraft version.)
 		poseStack.last().rotate(new Quaternionf().rotateX(Mth.PI));
-		if (!data.elmo && data.characterSize != 1.0F) {
+		if (data.characterSize != 1.0F) {
 			poseStack.scale(data.characterSize, data.characterSize, data.characterSize);
 		}
 		collector.submitCustomGeometry(poseStack, RENDER_TYPE,
@@ -67,10 +66,7 @@ public final class FaceRenderLayer extends RenderLayer<AvatarRenderState, Player
 	}
 
 	/** Pushes the face forward when something is worn on the head, so the eyes stay on top. */
-	private static float headwearOffset(AvatarRenderState state, FaceRenderData data) {
-		if (data.elmo) {
-			return 0.0F;
-		}
+	private static float headwearOffset(AvatarRenderState state) {
 		if (state.wornHeadType != null || !state.headItem.isEmpty()) {
 			return 1.3F;
 		}

@@ -49,7 +49,7 @@ final class TestReport {
 
 	void write(Path file) {
 		List<String> out = new ArrayList<>();
-		out.add("# EyeBall Mod - in-game test report");
+		out.add("# Googly Goobers - in-game test report");
 		out.add("");
 		out.add("Passed: " + this.passed + ", failed: " + this.failures.size());
 		out.addAll(this.lines);
@@ -65,7 +65,7 @@ final class TestReport {
 
 	void finish() {
 		if (!this.failures.isEmpty()) {
-			throw new AssertionError("EyeBall checks failed: " + String.join("; ", this.failures));
+			throw new AssertionError("Googly Goobers checks failed: " + String.join("; ", this.failures));
 		}
 	}
 }

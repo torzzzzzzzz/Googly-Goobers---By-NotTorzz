@@ -9,7 +9,7 @@ import de.maxhenkel.voicechat.api.events.EventRegistration;
 
 /**
  * Simple Voice Chat plugin (entrypoint {@code "voicechat"}). Only instantiated by Simple Voice Chat
- * itself, so EyeBall works fine without it.
+ * itself, so Googly Goobers works fine without it.
  * <p>
  * It listens to decoded voice audio on the client: other players' proximity voice
  * ({@link ClientReceiveSoundEvent.EntitySound}), group voice ({@link ClientReceiveSoundEvent.StaticSound})

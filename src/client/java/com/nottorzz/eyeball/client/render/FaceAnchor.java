@@ -33,11 +33,6 @@ public record FaceAnchor(
 	float mouthHeight,
 	float mouthFront,
 	float mouthBack,
-	float noseY,
-	float noseRadiusX,
-	float noseRadiusY,
-	float noseRadiusZ,
-	float noseCenterW,
 	float starsHeight,
 	float starsOrbit,
 	float eyeGrowUp,
@@ -54,22 +49,10 @@ public record FaceAnchor(
 		0.85F, 3.7F, 0.9F, 0.55F, 0.8F,
 		// mouth: height, width, max open height (a screaming mouth), front (in front of the hat layer), back
 		-2.55F, 4.3F, 4.8F, 0.62F, -0.05F,
-		// no nose on the googly face
-		0.0F, 0.0F, 0.0F, 0.0F, 0.0F,
 		// stars: height above head top, orbit radius
 		1.7F, 5.6F,
 		// growing features: eyes up / out per pixel of growth, lowest mouth point, eye-mouth gap
 		0.8F, 0.55F, -4.3F, 0.3F
 	);
 
-	/** The oversized, fluffy Elmo head (10 pixel rounded head plus fur). */
-	public static final FaceAnchor ELMO = new FaceAnchor(
-		-5.0F, -5.0F, 5.0F, 5.0F, 5.0F,
-		3.05F, 2.05F, 2.2F, 0.7F, 1.15F, 0.75F,
-		0.7F, 3.2F, 0.8F, 0.5F, 2.0F,
-		-2.35F, 6.6F, 6.0F, 1.5F, 0.35F,
-		0.45F, 2.05F, 1.55F, 1.6F, 1.75F,
-		2.4F, 7.0F,
-		0.85F, 0.5F, -5.3F, 0.3F
-	);
 }

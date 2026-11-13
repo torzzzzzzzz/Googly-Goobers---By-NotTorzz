@@ -1,9 +1,9 @@
 package com.nottorzz.eyeball.network;
 
-import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
+import com.nottorzz.eyeball.compat.PayloadCompat;
 
 /**
- * Registers every EyeBall payload type. Must run on both sides before any connection is made.
+ * Registers every Googly Goobers payload type. Must run on both sides before any connection is made.
  * <p>
  * Fabric only advertises a channel to the other side when a receiver is registered, so a client can
  * reliably tell whether the server has the mod with {@code ClientPlayNetworking.canSend(...)}.
@@ -22,9 +22,9 @@ public final class EyeBallNetworking {
 			return;
 		}
 		registered = true;
-		PayloadTypeRegistry.serverboundPlay().register(SelfAppearancePayload.TYPE, SelfAppearancePayload.CODEC);
-		PayloadTypeRegistry.serverboundPlay().register(FaceEventPayload.TYPE, FaceEventPayload.CODEC);
-		PayloadTypeRegistry.clientboundPlay().register(AppearanceSyncPayload.TYPE, AppearanceSyncPayload.CODEC);
-		PayloadTypeRegistry.clientboundPlay().register(PlayerFaceEventPayload.TYPE, PlayerFaceEventPayload.CODEC);
+		PayloadCompat.serverbound(SelfAppearancePayload.TYPE, SelfAppearancePayload.CODEC);
+		PayloadCompat.serverbound(FaceEventPayload.TYPE, FaceEventPayload.CODEC);
+		PayloadCompat.clientbound(AppearanceSyncPayload.TYPE, AppearanceSyncPayload.CODEC);
+		PayloadCompat.clientbound(PlayerFaceEventPayload.TYPE, PlayerFaceEventPayload.CODEC);
 	}
 }

@@ -2,13 +2,15 @@
 	"schemaVersion": 1,
 	"id": "eyeball",
 	"version": "${version}",
-	"name": "EyeBall Mod",
-	"description": "Gives players enormous 3D googly eyes, expressive eyebrows and talking mouths. Hit someone and their eyes turn into spinning hypnotic spirals! Includes an optional fluffy red Elmo-style character transformation.",
+	"name": "Googly Goobers",
+	"description": "Gives every player huge 3D googly eyes, bouncy cartoon eyebrows and a talking mouth. Faces swell up when players chat or speak, go wild when they scream, and getting hit turns the eyes into spinning spirals with orbiting stars.",
 	"authors": [
 		"NotTorzz"
 	],
 	"contact": {
-		"sources": "https://github.com/torzzzzzzzz/EyeBall-Mod-by-NotTorzz"
+		"homepage": "https://github.com/torzzzzzzzz/Googly-Goobers---By-NotTorzz",
+		"sources": "https://github.com/torzzzzzzzz/Googly-Goobers---By-NotTorzz",
+		"issues": "https://github.com/torzzzzzzzz/Googly-Goobers---By-NotTorzz/issues"
 	},
 	"icon": "assets/eyeball/icon.png",
 	"environment": "*",
@@ -35,8 +37,8 @@
 	"depends": {
 		"fabricloader": ">=0.20.1",
 		"minecraft": "${minecraft_dependency}",
-		"java": ">=25",
-		"fabric-api": "*"
+		"java": ">=${java_version}",
+		"fabric-api": "${fabric_api_dependency}"
 	},
 	"suggests": {
 		"modmenu": "*",

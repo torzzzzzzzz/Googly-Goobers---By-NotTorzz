@@ -13,7 +13,7 @@ import net.minecraft.util.Mth;
 /**
  * Drives the menu's preview character: its own face (separate from every real player), looping the
  * selected preview so you can see exactly how each effect looks with your current settings.
- * The preview ignores the two master switches (so you can preview before turning a mode on) but
+ * The preview ignores the main Googly Eyes switch (so you can preview before turning it on) but
  * follows every other setting.
  */
 public final class PreviewController {
@@ -23,25 +23,20 @@ public final class PreviewController {
 	};
 
 	public enum Mode {
-		GOOGLY("googly", false),
-		TALKING("talking", false),
-		SCREAMING("screaming", false),
-		BLINKING("blinking", false),
-		SURPRISED("surprised", false),
-		ANGRY("angry", false),
-		LAUGHING("laughing", false),
-		SPIRAL("spiral", false),
-		ELMO("elmo", true),
-		ELMO_TALKING("elmo_talking", true),
-		ELMO_SCREAMING("elmo_screaming", true),
-		ELMO_HIT("elmo_hit", true);
+		GOOGLY("googly"),
+		TALKING("talking"),
+		SCREAMING("screaming"),
+		BLINKING("blinking"),
+		SURPRISED("surprised"),
+		ANGRY("angry"),
+		LAUGHING("laughing"),
+		CONFUSED("confused"),
+		SPIRAL("spiral");
 
 		private final String key;
-		public final boolean elmo;
 
-		Mode(String key, boolean elmo) {
+		Mode(String key) {
 			this.key = key;
-			this.elmo = elmo;
 		}
 
 		public Component label() {
@@ -49,7 +44,7 @@ public final class PreviewController {
 		}
 
 		public boolean isHit() {
-			return this == SPIRAL || this == ELMO_HIT;
+			return this == SPIRAL;
 		}
 	}
 
@@ -89,13 +84,13 @@ public final class PreviewController {
 		this.inputs.glanceY = 0.05F;
 
 		switch (this.mode) {
-			case TALKING, ELMO_TALKING -> {
+			case TALKING -> {
 				if (this.cycle % 64 == 1) {
 					Expression expression = TALK_CYCLE[this.talkIndex++ % TALK_CYCLE.length];
 					this.face.talk(expression, 54);
 				}
 			}
-			case SCREAMING, ELMO_SCREAMING -> {
+			case SCREAMING -> {
 				// Scream for three seconds, then a short break so you can see it blend in and out.
 				if (this.cycle % 84 == 1) {
 					this.face.express(Expression.SCREAMING, 60);
@@ -125,7 +120,15 @@ public final class PreviewController {
 					this.face.talk(Expression.ANGRY, 34);
 				}
 			}
-			case SPIRAL, ELMO_HIT -> {
+			case CONFUSED -> {
+				if (this.cycle % 70 == 1) {
+					this.face.express(Expression.CONFUSED, 70);
+				}
+				if (this.cycle % 70 == 24) {
+					this.face.talk(Expression.CONFUSED, 22);
+				}
+			}
+			case SPIRAL -> {
 				int loop = Math.round(config.reactionDuration * 20.0F) + 30;
 				if (this.cycle % loop == 8) {
 					this.face.hit(1.0F, config);
@@ -152,9 +155,6 @@ public final class PreviewController {
 
 	/** Face data for the preview character this frame. */
 	public FaceRenderData renderData(float partialTick, EyeBallConfig config) {
-		int flags = this.mode.elmo
-			? Appearance.of(config.googlyEyes, true)
-			: Appearance.GOOGLY;
-		return new FaceRenderData(flags, this.face.pose(partialTick, config), config, 0.0);
+		return new FaceRenderData(Appearance.GOOGLY, this.face.pose(partialTick, config), config, 0.0);
 	}
 }

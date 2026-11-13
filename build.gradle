@@ -1,16 +1,25 @@
 plugins {
-	id 'net.fabricmc.fabric-loom' version "${loom_version}"
+	// Minecraft 26.x ships unobfuscated: compiled against the game as-is.
+	id 'net.fabricmc.fabric-loom' version "${loom_version}" apply false
+	// Minecraft 1.21.11 is obfuscated: compiled against Mojang's official mappings and remapped
+	// to intermediary names for the release jar.
+	id 'net.fabricmc.fabric-loom-remap' version "${loom_version}" apply false
 }
 
 // ----------------------------------------------------------------------------------------------
 // Minecraft version selection
 //
-//   ./gradlew build              -> Minecraft 26.3 (default)  -> build/libs/eyeball-1.1.0.jar
-//   ./gradlew build -Pmc=26.2    -> Minecraft 26.2            -> build/mc26.2/libs/eyeball-1.1.0-mc26.2.jar
+//   ./gradlew build                  -> Minecraft 26.3 (default)
+//   ./gradlew build -Pmc=26.2        -> Minecraft 26.2
+//   ./gradlew build -Pmc=1.21.11     -> Minecraft 1.21.11
 //
-// Each supported version has versions/<mc>.properties (Minecraft, Fabric API and Mod Menu
-// versions). Code that differs between versions lives in src/<sourceSet>/java-mc<mc>/ next to
-// the shared sources; only the folder for the selected version is compiled.
+// Release jar: build/mc<version>/libs/googly-goobers-<mod_version>-mc<version>.jar
+//
+// Each supported version has versions/<mc>.properties (Minecraft, Fabric API, Mod Menu and Java
+// versions). Code that differs between Minecraft versions lives next to the shared sources in
+//   src/<sourceSet>/java-mc26.x/    (Minecraft 26.2 and 26.3)
+//   src/<sourceSet>/java-mc1.21.x/  (Minecraft 1.21.11)
+// and only the selected version's folder is compiled. Everything else is shared by all versions.
 // ----------------------------------------------------------------------------------------------
 def defaultTarget = "26.3"
 def mcTarget = (findProperty("mc") ?: defaultTarget).toString()
@@ -22,15 +31,19 @@ if (!versionFile.isFile()) {
 def mcProps = new Properties()
 versionFile.withInputStream { mcProps.load(it) }
 mcProps.each { key, value -> project.ext.set(key.toString(), value.toString()) }
-def isDefaultTarget = mcTarget == defaultTarget
-def modVersion = isDefaultTarget ? project.mod_version : "${project.mod_version}+mc${mcTarget}"
-if (!isDefaultTarget) {
-	// Keep every Minecraft version's classes, jars and test runs apart.
-	layout.buildDirectory = layout.projectDirectory.dir("build/mc${mcTarget}")
-}
-logger.lifecycle("EyeBall: building for Minecraft ${project.minecraft_version} (Fabric API ${project.fabric_api_version})")
+def obfuscated = project.obfuscated.toBoolean()
+def javaVersion = project.java_version.toInteger()
+def modVersion = "${project.mod_version}+mc${mcTarget}"
+def releaseJarName = "${project.archives_base_name}-${project.mod_version}-mc${mcTarget}.jar"
 
-version = project.mod_version
+apply plugin: obfuscated ? 'net.fabricmc.fabric-loom-remap' : 'net.fabricmc.fabric-loom'
+
+// Keep every Minecraft version's classes, jars and test runs apart.
+layout.buildDirectory = layout.projectDirectory.dir("build/mc${mcTarget}")
+logger.lifecycle("Googly Goobers: building for Minecraft ${project.minecraft_version} " +
+	"(Fabric API ${project.fabric_api_version}, Java ${javaVersion}${obfuscated ? ', Mojang mappings' : ''})")
+
+version = modVersion
 group = project.maven_group
 
 base {
@@ -56,10 +69,10 @@ loom {
 	// Separate game folders per Minecraft version (worlds can't be opened by older versions).
 	runs {
 		client {
-			runDir = isDefaultTarget ? "run" : "run/mc${mcTarget}"
+			runDir = "run/mc${mcTarget}"
 		}
 		server {
-			runDir = isDefaultTarget ? "run" : "run/mc${mcTarget}"
+			runDir = "run/mc${mcTarget}"
 		}
 	}
 }
@@ -79,22 +92,35 @@ fabricApi {
 	}
 }
 
-// Version-specific source folders (only the selected Minecraft version's folder is compiled).
+// Each Minecraft version gets its own in-game test directory (worlds, settings, the restart check).
+loom.runs.matching { it.name == "clientGameTest" }.configureEach {
+	it.runDirectory.set(layout.buildDirectory.dir("run/clientGameTest").get().asFile)
+}
+
+// Version-specific source folders (only the selected Minecraft version's folders are compiled).
 ["main", "client", "gametest"].each { setName ->
-	def versionDir = file("src/${setName}/java-mc${mcTarget}")
-	if (versionDir.isDirectory()) {
-		sourceSets.getByName(setName).java.srcDir(versionDir)
+	[file("src/${setName}/java-${project.source_family}"), file("src/${setName}/java-mc${mcTarget}")].each { dir ->
+		if (dir.isDirectory()) {
+			sourceSets.getByName(setName).java.srcDir(dir)
+		}
 	}
 }
 
 dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
-	implementation "net.fabricmc:fabric-loader:${project.loader_version}"
-	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-
-	// Mod Menu: adds a "Configure" button in the mods list when Mod Menu is installed.
-	clientCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+	if (obfuscated) {
+		mappings loom.officialMojangMappings()
+		modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+		modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+		modClientCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+	} else {
+		implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+		implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+		// Mod Menu: adds a "Configure" button in the mods list when Mod Menu is installed.
+		clientCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+	}
 	// Simple Voice Chat: real voice-activity lip sync when Simple Voice Chat is installed.
+	// Its plugin API is plain Java and identical for every Minecraft version.
 	compileOnly "de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}"
 	clientCompileOnly "de.maxhenkel.voicechat:voicechat-api:${project.voicechat_api_version}"
 
@@ -102,22 +128,46 @@ dependencies {
 	productionRuntimeMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 }
 
+// The release jar: remapped to intermediary names for obfuscated versions, the plain jar otherwise.
+def releaseJarTask = tasks.named(obfuscated ? "remapJar" : "jar")
+releaseJarTask.configure {
+	archiveFileName = releaseJarName
+}
+if (obfuscated) {
+	// The unmapped development jar keeps a distinct name so it can never be mistaken for the release.
+	tasks.named("jar") { archiveClassifier = "dev" }
+}
+
 // The in-game test suite packaged as its own mod, so it can run against the real release jar.
 def gametestJar = tasks.register("gametestJar", Jar) {
-	archiveClassifier = "gametest"
+	archiveClassifier = obfuscated ? "gametest-dev" : "gametest"
 	destinationDirectory = layout.buildDirectory.dir("gametest-libs")
 	from sourceSets.gametest.output
 }
+def productionGametestJar = gametestJar
+if (obfuscated) {
+	// Production uses intermediary names, so the test mod is remapped like the release jar.
+	productionGametestJar = tasks.register("remapGametestJar", net.fabricmc.loom.task.RemapJarTask) {
+		inputFile = gametestJar.flatMap { it.archiveFile }
+		archiveClassifier = "gametest"
+		destinationDirectory = layout.buildDirectory.dir("gametest-libs")
+		classpath.from(sourceSets.gametest.compileClasspath)
+	}
+}
 
 // ./gradlew runProductionClientGameTest - launches real Fabric Loader with a mods folder containing
-// the built eyeball jar, Fabric API and the test mod, and runs the whole in-game test suite.
+// the release jar, Fabric API and the test mod, and runs the whole in-game test suite.
 tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
 	group = "verification"
-	description = "Runs the in-game test suite against the built mod jar in a production Fabric environment."
+	description = "Runs the in-game test suite against the release jar in a production Fabric environment."
 	def prodRunDir = layout.buildDirectory.dir("run/productionClientGameTest")
-	mods.from(tasks.named("jar"))
-	mods.from(gametestJar)
+	mods.from(releaseJarTask)
+	mods.from(productionGametestJar)
 	mods.from(configurations.productionRuntimeMods)
+	// Extra mods to load alongside (e.g. Mod Menu, Simple Voice Chat): -PextraMods=/path/a.jar,/path/b.jar
+	if (findProperty("extraMods")) {
+		findProperty("extraMods").toString().split(",").each { mods.from(file(it.trim())) }
+	}
 	jvmArgs.add("-Dfabric.client.gametest")
 	runDir = prodRunDir
 	doFirst {
@@ -128,35 +178,54 @@ tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.Client
 }
 
 processResources {
-	def expansions = [version: modVersion, minecraft_dependency: project.minecraft_dependency]
+	def expansions = [
+		version             : modVersion,
+		minecraft_dependency: project.minecraft_dependency,
+		java_version        : javaVersion.toString(),
+		mixin_java_level    : "JAVA_${javaVersion}".toString(),
+		// Needs at least the Fabric API this jar was built and tested against.
+		fabric_api_dependency: ">=" + project.fabric_api_version.toString().split("\\+")[0]
+	]
 	inputs.properties expansions
-	filesMatching("fabric.mod.json") {
+	filesMatching(["fabric.mod.json", "*.mixins.json"]) {
+		expand expansions
+	}
+}
+tasks.named("processClientResources") {
+	def expansions = [mixin_java_level: "JAVA_${javaVersion}".toString()]
+	inputs.properties expansions
+	filesMatching("*.mixins.json") {
 		expand expansions
 	}
 }
 
 tasks.withType(JavaCompile).configureEach {
-	it.options.release = 25
+	it.options.release = javaVersion
 	it.options.encoding = 'UTF-8'
 }
 
 java {
 	withSourcesJar()
-	sourceCompatibility = JavaVersion.VERSION_25
-	targetCompatibility = JavaVersion.VERSION_25
+	sourceCompatibility = JavaVersion.toVersion(javaVersion)
+	targetCompatibility = JavaVersion.toVersion(javaVersion)
+}
+
+// Run the game (and the in-game tests) on the Java version players use for this Minecraft version.
+def gameLauncher = javaToolchains.launcherFor {
+	languageVersion = JavaLanguageVersion.of(javaVersion)
+}
+tasks.withType(JavaExec).configureEach {
+	javaLauncher = gameLauncher
 }
 
 jar {
 	manifest {
 		attributes(
-			"Implementation-Title": "EyeBall Mod",
+			"Implementation-Title": "Googly Goobers",
 			"Implementation-Version": modVersion,
-			"EyeBall-Minecraft-Version": project.minecraft_version
+			"Googly-Goobers-Minecraft-Version": project.minecraft_version
 		)
 	}
-}
-
-if (!isDefaultTarget) {
-	tasks.named("jar") { archiveClassifier = "mc${mcTarget}" }
-	tasks.named("sourcesJar") { archiveClassifier = "mc${mcTarget}-sources" }
+	// Development-only files never go into the release.
+	exclude("**/*.psd", "**/*.xcf", "**/.DS_Store")
 }

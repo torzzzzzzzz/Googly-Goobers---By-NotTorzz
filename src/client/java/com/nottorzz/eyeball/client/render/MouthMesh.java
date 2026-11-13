@@ -32,11 +32,11 @@ public final class MouthMesh {
 	 *
 	 * @param height opening in pixels (0 = closed)
 	 */
-	public void shape(float cx, float cy, float width, float height, float smile, float dShape, boolean elmo) {
+	public void shape(float cx, float cy, float width, float height, float smile, float dShape) {
 		float h = Math.max(0.0F, height);
 		this.height = h;
 		float topShare = Mth.lerp(dShape, 0.5F, 0.12F);
-		float minHalf = elmo ? 0.25F : 0.2F;
+		float minHalf = 0.2F;
 		for (int i = 0; i <= SEGMENTS; i++) {
 			float s = -1.0F + 2.0F * i / SEGMENTS;
 			float e = (float) Math.sqrt(Math.max(0.0F, 1.0F - s * s));
@@ -87,12 +87,12 @@ public final class MouthMesh {
 		return this.top[SEGMENTS / 2] - this.bottom[SEGMENTS / 2];
 	}
 
-	public void draw(MeshWriter w, float cx, float width, float teeth, float uvula, float front, float back, boolean elmo) {
-		int outline = MeshWriter.argb(elmo ? 0x140405 : 0x2A0D10);
-		int interiorTop = MeshWriter.argb(elmo ? 0x0C0304 : 0x2A060C);
-		int interiorBottom = MeshWriter.argb(elmo ? 0x1E0709 : 0x5C1322);
-		int tongue = MeshWriter.argb(elmo ? 0xB3303D : 0xE36A80);
-		int uvulaColor = MeshWriter.argb(elmo ? 0xC2404E : 0xD9586F);
+	public void draw(MeshWriter w, float cx, float width, float teeth, float uvula, float front, float back) {
+		int outline = MeshWriter.argb(0x2A0D10);
+		int interiorTop = MeshWriter.argb(0x2A060C);
+		int interiorBottom = MeshWriter.argb(0x5C1322);
+		int tongue = MeshWriter.argb(0xE36A80);
+		int uvulaColor = MeshWriter.argb(0xD9586F);
 		int toothColor = MeshWriter.argb(0xF6F2E8);
 
 		// 3D thickness: walls from the outline back to the face.

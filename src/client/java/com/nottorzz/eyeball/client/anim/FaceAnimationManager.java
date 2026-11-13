@@ -2,6 +2,7 @@ package com.nottorzz.eyeball.client.anim;
 
 import com.nottorzz.eyeball.Appearance;
 import com.nottorzz.eyeball.Expression;
+import com.nottorzz.eyeball.client.compat.McCompat;
 import com.nottorzz.eyeball.client.config.ConfigManager;
 import com.nottorzz.eyeball.client.config.EyeBallConfig;
 import com.nottorzz.eyeball.client.render.FaceRenderData;
@@ -10,6 +11,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
@@ -100,8 +102,9 @@ public final class FaceAnimationManager {
 		// Look at the camera (you!) when close, otherwise at the nearest other player.
 		Vec3 eye = player.getEyePosition();
 		Vec3 target = null;
-		Vec3 camera = minecraft.gameRenderer.mainCamera().position();
-		boolean selfInFirstPerson = player == minecraft.getCameraEntity() && !minecraft.gameRenderer.mainCamera().isDetached();
+		Camera mainCamera = McCompat.camera(minecraft);
+		Vec3 camera = mainCamera.position();
+		boolean selfInFirstPerson = player == minecraft.getCameraEntity() && !mainCamera.isDetached();
 		if (!selfInFirstPerson && camera.distanceToSqr(eye) < GLANCE_RANGE * GLANCE_RANGE && camera.distanceToSqr(eye) > 0.04) {
 			target = camera;
 		} else {

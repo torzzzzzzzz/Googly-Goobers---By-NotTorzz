@@ -1,11 +1,11 @@
 package com.nottorzz.eyeball.client.gui.widget;
 
+import com.nottorzz.eyeball.client.compat.CompatSlider;
+import com.nottorzz.eyeball.client.compat.Gfx;
 import java.util.function.Consumer;
 import java.util.function.DoubleFunction;
 import java.util.function.DoubleSupplier;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.network.chat.Component;
 import org.jspecify.annotations.Nullable;
@@ -14,7 +14,7 @@ import org.jspecify.annotations.Nullable;
  * A labelled slider with a coloured fill and a value read-out ("Eye Size   1.25x").
  * Changes apply while dragging. Arrow keys work when focused.
  */
-public final class ValueSlider extends AbstractSliderButton {
+public final class ValueSlider extends CompatSlider {
 	private final Component label;
 	private final double min;
 	private final double max;
@@ -68,7 +68,7 @@ public final class ValueSlider extends AbstractSliderButton {
 	}
 
 	@Override
-	public void extractWidgetRenderState(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
+	protected void drawWidget(Gfx g, int mouseX, int mouseY, float a) {
 		int x = this.getX();
 		int y = this.getY();
 		boolean hover = this.isHoveredOrFocused();
@@ -89,6 +89,5 @@ public final class ValueSlider extends AbstractSliderButton {
 		}
 		int knobX = trackX + fill - 3;
 		GuiDraw.roundedRect(g, knobX, trackY - 2, 7, 7, 3, 0xFFFFFFFF);
-		this.handleCursor(g);
 	}
 }

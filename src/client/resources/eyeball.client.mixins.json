@@ -1,10 +1,9 @@
 {
 	"required": true,
 	"package": "com.nottorzz.eyeball.client.mixin",
-	"compatibilityLevel": "JAVA_25",
+	"compatibilityLevel": "${mixin_java_level}",
 	"client": [
 		"AvatarRendererMixin",
-		"EntityRenderDispatcherMixin",
 		"LivingEntityDamageMixin",
 		"PlayerModelMixin"
 	],

@@ -10,6 +10,7 @@ import com.nottorzz.eyeball.client.anim.ExpressionDetector;
 import com.nottorzz.eyeball.client.anim.FaceAnimationManager;
 import com.nottorzz.eyeball.client.anim.FacePose;
 import com.nottorzz.eyeball.client.anim.FaceState;
+import com.nottorzz.eyeball.client.compat.McCompat;
 import com.nottorzz.eyeball.client.config.ConfigManager;
 import com.nottorzz.eyeball.client.config.EyeBallConfig;
 import com.nottorzz.eyeball.client.gui.EyeBallConfigScreen;
@@ -22,11 +23,11 @@ import com.nottorzz.eyeball.client.render.FaceAnchor;
 import com.nottorzz.eyeball.client.render.FaceMeshBuilder;
 import com.nottorzz.eyeball.client.render.FaceRenderData;
 import com.nottorzz.eyeball.client.render.FaceRenderLayer;
-import com.nottorzz.eyeball.client.render.elmo.ElmoRenderer;
 import com.nottorzz.eyeball.client.target.SyncedLooks;
+import com.nottorzz.eyeball.client.target.TargetResolver;
 import com.nottorzz.eyeball.compat.voice.VoiceActivity;
+import com.nottorzz.eyeball.gametest.compat.GameTestCompat;
 import com.nottorzz.eyeball.server.EyeBallServer;
-import com.nottorzz.eyeball.server.ForcedLookStore;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -39,7 +40,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import net.fabricmc.fabric.api.client.gametest.v1.FabricClientGameTest;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
-import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerConnection;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestDedicatedServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
@@ -59,15 +59,15 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.phys.Vec3;
 
 /**
- * Full in-game test of EyeBall Mod in a real Minecraft client (run with {@code ./gradlew runClientGameTest}).
- * Covers rendering, every animation, hit reactions and their priority, Elmo, every switch, the menu
+ * Full in-game test of Googly Goobers in a real Minecraft client (run with {@code ./gradlew runClientGameTest}).
+ * Covers rendering, every animation, hit reactions and their priority, every switch, the menu
  * with its preview and player selection, settings persistence across restarts (run twice), real
  * multiplayer sync against a dedicated server with a second player, and performance.
- * Writes {@code eyeball-test-report.md} and screenshots into the run directory.
+ * Writes {@code googly-goobers-test-report.md} and screenshots into the run directory.
  */
 public final class EyeBallClientGameTest implements FabricClientGameTest {
 	private static final UUID BOB = UUID.fromString("b0b0b0b0-1234-4321-8888-0000000000b0");
-	private static final String MARKER = "eyeball-persistence-marker.json";
+	private static final String MARKER = "googlygoobers-persistence-marker.json";
 	private static final Gson GSON = new Gson();
 
 	private final TestReport report = new TestReport();
@@ -92,7 +92,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 				this.writePersistedSettings(runDir);
 			}
 		} finally {
-			this.report.write(runDir.resolve("eyeball-test-report.md"));
+			this.report.write(runDir.resolve("googly-goobers-test-report.md"));
 		}
 		this.report.finish();
 	}
@@ -114,14 +114,14 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 			});
 			this.report.check("eye size restored", Math.abs(loaded.eyeSize - expected.get("eyeSize").getAsFloat()) < 1e-4, "loaded " + loaded.eyeSize);
 			this.report.check("spiral speed restored", Math.abs(loaded.spiralSpeed - expected.get("spiralSpeed").getAsFloat()) < 1e-4, "loaded " + loaded.spiralSpeed);
-			this.report.check("Elmo switch restored", loaded.elmo == expected.get("elmo").getAsBoolean(), "loaded " + loaded.elmo);
+			this.report.check("cartoon stars switch restored", loaded.cartoonStars == expected.get("cartoonStars").getAsBoolean(), "loaded " + loaded.cartoonStars);
 			this.report.check("blinking switch restored", loaded.blinking == expected.get("blinking").getAsBoolean(), "loaded " + loaded.blinking);
 			if (expected.has("eyeEnlargement")) {
 				this.report.check("eye enlargement restored", Math.abs(loaded.eyeEnlargement - expected.get("eyeEnlargement").getAsFloat()) < 1e-4, "loaded " + loaded.eyeEnlargement);
 				this.report.check("mouth opening restored", Math.abs(loaded.mouthOpening - expected.get("mouthOpening").getAsFloat()) < 1e-4, "loaded " + loaded.mouthOpening);
 				this.report.check("overall exaggeration restored", Math.abs(loaded.exaggeration - expected.get("exaggeration").getAsFloat()) < 1e-4, "loaded " + loaded.exaggeration);
 			}
-			this.report.check("apply-to-everyone (Elmo) restored", loaded.everyoneElmo == expected.get("everyoneElmo").getAsBoolean(), "");
+			this.report.check("apply-to-everyone restored", loaded.everyoneGoogly == expected.get("everyoneGoogly").getAsBoolean(), "loaded " + loaded.everyoneGoogly);
 			EyeBallConfig.PlayerOverride bob = loaded.override(BOB);
 			this.report.check("per-player choice restored", bob != null && Boolean.FALSE.equals(bob.googly), bob == null ? "missing" : "googly=" + bob.googly);
 			Files.delete(marker);
@@ -137,9 +137,9 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 			c.copyFrom(EyeBallConfig.defaults());
 			c.eyeSize = 1.35F;
 			c.spiralSpeed = 2.25F;
-			c.elmo = true;
+			c.cartoonStars = false;
 			c.blinking = false;
-			c.everyoneElmo = true;
+			c.everyoneGoogly = false;
 			c.eyeEnlargement = 1.4F;
 			c.mouthOpening = 0.8F;
 			c.exaggeration = 1.25F;
@@ -149,15 +149,15 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		JsonObject expected = new JsonObject();
 		expected.addProperty("eyeSize", 1.35F);
 		expected.addProperty("spiralSpeed", 2.25F);
-		expected.addProperty("elmo", true);
+		expected.addProperty("cartoonStars", false);
 		expected.addProperty("blinking", false);
-		expected.addProperty("everyoneElmo", true);
+		expected.addProperty("everyoneGoogly", false);
 		expected.addProperty("eyeEnlargement", 1.4F);
 		expected.addProperty("mouthOpening", 0.8F);
 		expected.addProperty("exaggeration", 1.25F);
 		try {
 			Files.writeString(runDir.resolve("config").resolve(MARKER), GSON.toJson(expected), StandardCharsets.UTF_8);
-			this.report.note("Distinct settings saved to config/eyeball.json; the next launch verifies they were restored.");
+			this.report.note("Distinct settings saved to config/googlygoobers.json; the next launch verifies they were restored.");
 		} catch (IOException e) {
 			this.report.check("write persistence marker", false, e.toString());
 		}
@@ -170,7 +170,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.ctx.setScreen(() -> new EyeBallConfigScreen(null));
 		this.ctx.waitForScreen(EyeBallConfigScreen.class);
 		this.ctx.waitTicks(30);
-		boolean previewShown = this.ctx.computeOnClient(mc -> mc.gui.screen() instanceof EyeBallConfigScreen s && s.previewPanel() != null);
+		boolean previewShown = this.ctx.computeOnClient(mc -> McCompat.screen(mc) instanceof EyeBallConfigScreen s && s.previewPanel() != null);
 		this.report.check("menu opens without a world, with preview", previewShown, "");
 		this.report.screenshot(this.ctx, "menu_title_screen", "Settings menu opened from the title screen; preview uses the default skin");
 		this.ctx.setScreen(() -> null);
@@ -180,7 +180,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 
 	private void singleplayer() {
 		try (TestSingleplayerContext world = this.ctx.worldBuilder().create()) {
-			world.getConnection().waitForChunksRender();
+			GameTestCompat.waitForChunksRender(world);
 			TestServerContext server = world.getServer();
 			server.runCommand("time set noon");
 			server.runCommand("gamemode survival @a");
@@ -188,11 +188,11 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 			this.ctx.runOnClient(mc -> {
 				mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
 				mc.options.fov().set(30);
-				if (!mc.gui.hud.isHidden()) {
-					mc.gui.hud.toggle();
+				if (!McCompat.isHudHidden(mc)) {
+					McCompat.toggleHud(mc);
 				}
 			});
-			this.ctx.getInput().lookAt(0.0F, 0.0F);
+			this.look(0.0F, 0.0F);
 			UUID self = this.ctx.computeOnClient(mc -> mc.player.getUUID());
 			this.ctx.waitTicks(40);
 
@@ -209,7 +209,6 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 			this.priority(server, self);
 			this.transitions(server, self);
 			this.individualSettings(server, self);
-			this.elmo(server, self);
 			this.masterSwitches(self);
 			this.menuInWorld(self);
 		}
@@ -218,7 +217,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 	private void googlyRendering(UUID self) {
 		this.report.section("Googly eyes render");
 		FaceRenderData data = this.extract();
-		this.report.check("face attached to the player's render state", data != null && data.googly && !data.elmo, data == null ? "no data" : "googly=" + data.googly);
+		this.report.check("face attached to the player's render state", data != null && data.googly, data == null ? "no data" : "googly=" + data.googly);
 		this.report.check("eyebrows enabled on the googly face", data != null && data.showBrows, "");
 		Integer quads = this.ctx.computeOnClient(mc -> FaceMeshBuilder.lastQuadCount());
 		this.report.check("3D face geometry built", quads != null && quads > 200, quads + " quads per face");
@@ -228,7 +227,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 	private void eyeMovement(UUID self) {
 		this.report.section("Pupils move");
 		FacePose before = this.pose(self);
-		this.ctx.getInput().lookAt(70.0F, -25.0F);
+		this.look(70.0F, -25.0F);
 		float maxShift = 0.0F;
 		for (int i = 0; i < 12; i++) {
 			this.ctx.waitTick();
@@ -239,7 +238,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		FacePose turned = this.pose(self);
 		this.report.check("the two pupils move independently", Math.abs(turned.pupilX[0] - turned.pupilX[1]) > 0.005F || Math.abs(turned.pupilY[0] - turned.pupilY[1]) > 0.005F,
 			String.format(Locale.ROOT, "left (%.2f, %.2f) right (%.2f, %.2f)", turned.pupilX[0], turned.pupilY[0], turned.pupilX[1], turned.pupilY[1]));
-		this.ctx.getInput().lookAt(0.0F, 0.0F);
+		this.look(0.0F, 0.0F);
 		this.ctx.waitTicks(20);
 	}
 
@@ -731,13 +730,13 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.ctx.waitTicks(60);
 
 		this.config(c -> c.eyeMovement = false);
-		this.ctx.getInput().lookAt(60.0F, 30.0F);
+		this.look(60.0F, 30.0F);
 		this.ctx.waitTicks(25);
 		FacePose still = this.pose(self);
 		this.report.check("Eye Movement OFF: pupils stay centred", Math.abs(still.pupilX[0]) < 0.15F && Math.abs(still.pupilY[0] + 0.1F) < 0.15F,
 			String.format(Locale.ROOT, "pupil (%.2f, %.2f)", still.pupilX[0], still.pupilY[0]));
 		this.config(c -> c.eyeMovement = true);
-		this.ctx.getInput().lookAt(0.0F, 0.0F);
+		this.look(0.0F, 0.0F);
 
 		this.config(c -> c.blinking = false);
 		float minOpen = this.minOver(140, mc -> this.poseOnClient(self).eyeOpen[0]);
@@ -766,89 +765,12 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.config(c -> c.eyeSpacing = 1.0F);
 	}
 
-	private void elmo(TestServerContext server, UUID self) {
-		this.report.section("Elmo transformation");
-		this.config(c -> c.elmo = true);
-		this.ctx.waitTicks(5);
-		boolean elmoRenderer = this.ctx.computeOnClient(mc -> mc.getEntityRenderDispatcher().getRenderer(mc.player) instanceof ElmoRenderer);
-		FaceRenderData data = this.extract();
-		this.report.check("player is drawn by the Elmo renderer", elmoRenderer, "");
-		this.report.check("Elmo face data (googly eyes on Elmo)", data != null && data.elmo && data.googly, "");
-		this.report.screenshot(this.ctx, "elmo", "Elmo transformation with googly eyes: fur shells, orange nose, big mouth");
-		Sample elmoIdle = this.sample(self);
-		this.ctx.runOnClient(mc -> mc.player.connection.sendChat("Elmo loves to talk with everybody! hahaha"));
-		List<Sample> elmoTalk = new ArrayList<>();
-		for (int i = 0; i < 24; i++) {
-			this.ctx.waitTick();
-			elmoTalk.add(this.sample(self));
-			if (i == 14) {
-				this.report.screenshot(this.ctx, "elmo_talking", "Elmo talking (laughing message): big eyes, wide mouth");
-			}
-		}
-		float maxOpen = Stats.of(elmoTalk, x -> x.pose.mouthOpen).max;
-		Stats elmoEyes = Stats.of(elmoTalk.subList(12, elmoTalk.size()), x -> x.eyeRatio(elmoIdle));
-		Stats elmoMouth = Stats.of(elmoTalk, x -> x.layout.mouthHeight);
-		Stats elmoBottom = Stats.of(elmoTalk, x -> x.layout.mouthBottom);
-		this.report.check("Elmo mouth talks", maxOpen > 0.3F, String.format(Locale.ROOT, "max open %.2f", maxOpen));
-		this.report.check("Elmo's eyes and mouth get big too", elmoEyes.avg >= 1.45F && elmoMouth.max >= 4.0F,
-			String.format(Locale.ROOT, "eyes x%.2f, mouth up to %.2f px (idle %.2f px)", elmoEyes.avg, elmoMouth.max, elmoIdle.layout.mouthHeight));
-		this.report.check("Elmo's mouth stays on his face", elmoBottom.min >= FaceAnchor.ELMO.chinLimit() - 0.01F,
-			String.format(Locale.ROOT, "lowest point %.2f px", elmoBottom.min));
-		this.waitForTalkEnd(self, 120);
-		this.makeFace(Expression.SCREAMING);
-		Sample elmoScream = this.sample(self);
-		this.report.check("Elmo screams", elmoScream.mood == Expression.SCREAMING && elmoScream.eyeRatio(elmoIdle) >= 1.75F && elmoScream.layout.mouthHeight >= 4.5F,
-			String.format(Locale.ROOT, "eyes x%.2f, mouth %.2f px", elmoScream.eyeRatio(elmoIdle), elmoScream.layout.mouthHeight));
-		this.report.screenshot(this.ctx, "elmo_screaming", "Elmo screaming: huge eyes, round open mouth, arms flailing");
-		this.ctx.waitTicks(80);
-		server.runCommand("damage @p 1 minecraft:generic");
-		this.ctx.waitTicks(6);
-		this.report.check("Elmo gets spiral eyes when hit", this.pose(self).spiral, "");
-		this.report.screenshot(this.ctx, "elmo_hit", "Elmo hit reaction: spiral eyes and stars");
-		this.ctx.waitTicks(45);
-		server.runCommand("effect give @p minecraft:instant_health 1 1 true");
-
-		this.config(c -> c.googlyEyes = false);
-		this.ctx.waitTicks(3);
-		FaceRenderData pure = this.extract();
-		this.report.check("Elmo without Googly Eyes keeps Elmo's own eyes, no brows", pure != null && pure.elmo && !pure.googly && !pure.showBrows, "");
-		this.report.screenshot(this.ctx, "elmo_only", "Elmo with Googly Eyes OFF: Elmo's own soft eyes");
-		this.config(c -> c.characterSize = 1.3F);
-		this.ctx.waitTicks(3);
-		this.report.screenshot(this.ctx, "elmo_character_size", "Elmo with Character Size 1.3x (bigger head)");
-		this.config(c -> {
-			c.characterSize = 1.0F;
-			c.googlyEyes = true;
-		});
-		// Hiding the HUD (F1) also hides your hand, so show it for this shot.
-		this.ctx.runOnClient(mc -> {
-			mc.options.setCameraType(CameraType.FIRST_PERSON);
-			mc.options.fov().set(70);
-			if (mc.gui.hud.isHidden()) {
-				mc.gui.hud.toggle();
-			}
-		});
-		this.ctx.waitTicks(5);
-		this.report.screenshot(this.ctx, "elmo_first_person", "First person as Elmo: red furry arm");
-		this.ctx.runOnClient(mc -> {
-			mc.options.setCameraType(CameraType.THIRD_PERSON_FRONT);
-			mc.options.fov().set(30);
-			if (!mc.gui.hud.isHidden()) {
-				mc.gui.hud.toggle();
-			}
-		});
-		this.config(c -> c.elmo = false);
-		this.ctx.waitTicks(3);
-		boolean vanilla = this.ctx.computeOnClient(mc -> !(mc.getEntityRenderDispatcher().getRenderer(mc.player) instanceof ElmoRenderer));
-		this.report.check("Elmo OFF: back to the normal player renderer immediately", vanilla, "");
-	}
-
 	private void masterSwitches(UUID self) {
 		this.report.section("Main ON/OFF switches");
 		this.config(c -> c.googlyEyes = false);
 		FaceRenderData none = this.extract();
 		this.report.check("Googly Eyes OFF: effect disappears immediately", none == null, "");
-		this.report.screenshot(this.ctx, "all_off", "Both modes OFF: plain vanilla player");
+		this.report.screenshot(this.ctx, "all_off", "Googly Eyes OFF: plain vanilla player");
 		this.config(c -> c.googlyEyes = true);
 		FaceRenderData back = this.extract();
 		this.report.check("Googly Eyes ON: effect returns immediately", back != null && back.googly, "");
@@ -861,12 +783,12 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.report.section("Menu, preview and player selection (in a world)");
 		this.ctx.getInput().pressKey(EyeBallKeys.openMenuKey());
 		this.ctx.waitForScreen(EyeBallConfigScreen.class);
-		this.report.check("G key opens the EyeBall menu", true, "");
+		this.report.check("G key opens the Googly Goobers menu", true, "");
 		this.ctx.waitTicks(10);
-		this.report.screenshot(this.ctx, "menu", "The EyeBall menu with live preview");
+		this.report.screenshot(this.ctx, "menu", "The Googly Goobers menu with live preview");
 
 		boolean toggled = this.ctx.computeOnClient(mc -> {
-			EyeBallConfigScreen screen = (EyeBallConfigScreen) mc.gui.screen();
+			EyeBallConfigScreen screen = (EyeBallConfigScreen) McCompat.screen(mc);
 			for (AbstractWidget widget : screen.settingsList().allWidgets()) {
 				if (widget instanceof ToggleSwitch toggle && widget.getMessage().getString().equals("Googly Eyes")) {
 					toggle.onPress(null);
@@ -878,7 +800,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		boolean offNow = this.ctx.computeOnClient(mc -> !ConfigManager.get().googlyEyes);
 		this.report.check("menu switch turns Googly Eyes OFF", toggled && offNow, "");
 		this.ctx.computeOnClient(mc -> {
-			EyeBallConfigScreen screen = (EyeBallConfigScreen) mc.gui.screen();
+			EyeBallConfigScreen screen = (EyeBallConfigScreen) McCompat.screen(mc);
 			for (AbstractWidget widget : screen.settingsList().allWidgets()) {
 				if (widget instanceof ToggleSwitch toggle && widget.getMessage().getString().equals("Googly Eyes")) {
 					toggle.onPress(null);
@@ -889,7 +811,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.report.check("menu switch turns it back ON", this.ctx.computeOnClient(mc -> ConfigManager.get().googlyEyes), "");
 
 		boolean sliders = this.ctx.computeOnClient(mc -> {
-			EyeBallConfigScreen screen = (EyeBallConfigScreen) mc.gui.screen();
+			EyeBallConfigScreen screen = (EyeBallConfigScreen) McCompat.screen(mc);
 			int found = 0;
 			for (AbstractWidget widget : screen.settingsList().allWidgets()) {
 				String label = widget.getMessage().getString();
@@ -902,7 +824,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		});
 		this.report.check("menu has Eye Enlargement, Mouth Opening, Animation Speed and Overall Exaggeration sliders", sliders, "");
 		boolean sliderWorks = this.ctx.computeOnClient(mc -> {
-			EyeBallConfigScreen screen = (EyeBallConfigScreen) mc.gui.screen();
+			EyeBallConfigScreen screen = (EyeBallConfigScreen) McCompat.screen(mc);
 			for (AbstractWidget widget : screen.settingsList().allWidgets()) {
 				if (widget instanceof ValueSlider slider && widget.getMessage().getString().startsWith("Eye Enlargement:")) {
 					slider.setActualValue(1.5);
@@ -922,12 +844,12 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.ctx.runOnClient(mc -> ConfigManager.get().eyeEnlargement = 1.0F);
 
 		for (PreviewController.Mode mode : PreviewController.Mode.values()) {
-			this.ctx.runOnClient(mc -> ((EyeBallConfigScreen) mc.gui.screen()).previewController().setMode(mode));
-			this.ctx.waitTicks(mode.isHit() ? 12 : mode == PreviewController.Mode.TALKING || mode == PreviewController.Mode.ELMO_TALKING ? 16 : 20);
+			this.ctx.runOnClient(mc -> ((EyeBallConfigScreen) McCompat.screen(mc)).previewController().setMode(mode));
+			this.ctx.waitTicks(mode.isHit() ? 12 : mode == PreviewController.Mode.TALKING ? 16 : 20);
 			this.report.screenshot(this.ctx, "preview_" + mode.name().toLowerCase(Locale.ROOT), "Preview: " + mode.label().getString());
 		}
 		this.ctx.runOnClient(mc -> {
-			EyeBallConfigScreen screen = (EyeBallConfigScreen) mc.gui.screen();
+			EyeBallConfigScreen screen = (EyeBallConfigScreen) McCompat.screen(mc);
 			screen.previewController().setMode(PreviewController.Mode.SPIRAL);
 			screen.previewPanel().setZoom(1.0F);
 			screen.previewPanel().setYaw(30.0F);
@@ -948,7 +870,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.report.check("Reset to Defaults restores defaults", reset, "");
 
 		boolean pressed = this.ctx.computeOnClient(mc -> {
-			EyeBallConfigScreen screen = (EyeBallConfigScreen) mc.gui.screen();
+			EyeBallConfigScreen screen = (EyeBallConfigScreen) McCompat.screen(mc);
 			for (AbstractWidget widget : screen.settingsList().allWidgets()) {
 				if (widget instanceof net.minecraft.client.gui.components.Button button && button.getMessage().getString().equals("Player Selection...")) {
 					button.onPress(null);
@@ -960,23 +882,23 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.report.check("Player Selection button in the menu", pressed, "");
 		this.ctx.waitForScreen(PlayerSelectionScreen.class);
 		this.ctx.waitTicks(5);
-		int rows = this.ctx.computeOnClient(mc -> ((PlayerSelectionScreen) mc.gui.screen()).rowCount());
+		int rows = this.ctx.computeOnClient(mc -> ((PlayerSelectionScreen) McCompat.screen(mc)).rowCount());
 		this.report.check("Player Selection lists the players", rows >= 1, rows + " row(s)");
 		this.report.screenshot(this.ctx, "player_selection_singleplayer", "Player Selection in singleplayer");
 		this.ctx.clickScreenButton("Done");
 		this.ctx.waitForScreen(EyeBallConfigScreen.class);
 		this.ctx.clickScreenButton("Done");
 		this.ctx.waitTicks(3);
-		this.report.check("Done closes the menu", this.ctx.computeOnClient(mc -> mc.gui.screen() == null), "");
+		this.report.check("Done closes the menu", this.ctx.computeOnClient(mc -> McCompat.screen(mc) == null), "");
 	}
 
 	// ------------------------------------------------------------------ multiplayer
 
 	private void multiplayer() {
-		this.report.section("Multiplayer (dedicated server with EyeBall)");
+		this.report.section("Multiplayer (dedicated server with Googly Goobers)");
 		this.config(c -> c.copyFrom(EyeBallConfig.defaults()));
 		try (TestDedicatedServerContext server = this.ctx.worldBuilder().createServer();
-			 TestDedicatedServerConnection connection = server.connect()) {
+			 GameTestCompat.Connection connection = GameTestCompat.connect(this.ctx, server)) {
 			connection.waitForChunksRender();
 			server.runCommand("time set noon");
 			this.ctx.runOnClient(mc -> {
@@ -984,28 +906,41 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 				mc.options.fov().set(30);
 			});
 			UUID self = this.ctx.computeOnClient(mc -> mc.player.getUUID());
-			this.report.check("client detects EyeBall on the server", this.ctx.computeOnClient(mc -> SyncedLooks.serverHasMod()), "");
+			this.report.check("client detects Googly Goobers on the server", this.ctx.computeOnClient(mc -> SyncedLooks.serverHasMod()), "");
 
-			this.config(c -> {
-				c.elmo = true;
-				c.selfElmo = true;
-			});
 			connection.waitForServerboundPackets();
 			int shared = server.computeOnServer(s -> EyeBallServer.selfLook(self));
-			this.report.check("your chosen look is shared with the server", Appearance.elmo(shared) && Appearance.googly(shared), "server sees " + Appearance.describe(shared));
-
-			this.config(c -> c.selfElmo = false);
+			this.report.check("your chosen look is shared with the server", Appearance.googly(shared), "server sees " + Appearance.describe(shared));
+			this.config(c -> c.selfGoogly = false);
 			connection.waitForServerboundPackets();
-			server.runCommand("eyeball elmo @a on");
+			int sharedOff = server.computeOnServer(s -> EyeBallServer.selfLook(self));
+			this.report.check("turning Apply to Myself off is shared too", !Appearance.googly(sharedOff), "server sees " + Appearance.describe(sharedOff));
+
+			server.runCommand("googlygoobers eyes @a on");
 			connection.waitForClientboundPackets();
 			this.ctx.waitTicks(2);
-			boolean forced = this.ctx.computeOnClient(mc -> Appearance.elmo(com.nottorzz.eyeball.client.target.TargetResolver.resolve(mc.player)));
-			this.report.check("operator command /eyeball elmo forces Elmo on a player", forced, "");
-			server.runCommand("eyeball elmo @a reset");
+			boolean forced = this.ctx.computeOnClient(mc -> Appearance.googly(TargetResolver.resolve(mc.player)));
+			this.report.check("/googlygoobers eyes @a on forces googly eyes on a player", forced, "");
+			this.config(c -> c.selfGoogly = true);
+			server.runCommand("googly eyes @a off");
 			connection.waitForClientboundPackets();
 			this.ctx.waitTicks(2);
-			boolean released = this.ctx.computeOnClient(mc -> !Appearance.elmo(com.nottorzz.eyeball.client.target.TargetResolver.resolve(mc.player)));
-			this.report.check("/eyeball elmo reset gives control back", released, "");
+			boolean forcedOff = this.ctx.computeOnClient(mc -> !Appearance.googly(TargetResolver.resolve(mc.player)));
+			this.report.check("/googly alias: eyes @a off forces them off (even with Apply to Myself on)", forcedOff, "");
+			String forcedFile = server.computeOnServer(s -> {
+				java.nio.file.Path file = s.getWorldPath(net.minecraft.world.level.storage.LevelResource.ROOT).resolve("googlygoobers_forced_looks.json");
+				try {
+					return Files.isRegularFile(file) ? Files.readString(file) : "";
+				} catch (IOException e) {
+					return "";
+				}
+			});
+			this.report.check("forced looks are saved with the world", forcedFile.contains("\"googly\": false"), forcedFile.isEmpty() ? "no file" : "googlygoobers_forced_looks.json written");
+			server.runCommand("googlygoobers eyes @a reset");
+			connection.waitForClientboundPackets();
+			this.ctx.waitTicks(2);
+			boolean released = this.ctx.computeOnClient(mc -> Appearance.googly(TargetResolver.resolve(mc.player)));
+			this.report.check("/googlygoobers eyes @a reset gives control back", released, "");
 
 			// A second player on the server.
 			server.runOnServer(s -> spawnBob(s));
@@ -1014,10 +949,10 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 			boolean bobVisible = this.ctx.computeOnClient(mc -> mc.level.getPlayerByUUID(BOB) != null);
 			this.report.check("second player visible to the client", bobVisible, "");
 			// Looking slightly up, so the other player's big eyes and brows fit in the screenshots.
-			this.ctx.getInput().lookAt(0.0F, -8.0F);
+			this.look(0.0F, -8.0F);
 			this.ctx.waitTicks(20);
 			FaceRenderData bobData = this.extractFor(BOB);
-			this.report.check("other players get googly eyes (Apply to Everyone)", bobData != null && bobData.googly && !bobData.elmo, "");
+			this.report.check("other players get googly eyes (Apply to Everyone)", bobData != null && bobData.googly, "");
 			this.report.screenshot(this.ctx, "mp_other_player", "Another player on the server with googly eyes, seen in first person");
 			this.watchBobTalk(server, connection);
 
@@ -1051,29 +986,42 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 			this.report.screenshot(this.ctx, "mp_other_player_hit", "The other player getting hit: spiral eyes");
 			this.ctx.waitTicks(45);
 
+			// Without "Apply to Everyone", the other player only gets googly eyes when the server says so.
+			this.config(c -> c.everyoneGoogly = false);
+			this.report.check("Apply to Everyone OFF: the other player looks normal", this.extractFor(BOB) == null, "");
 			server.runOnServer(s -> {
-				EyeBallServer.forcedLooks().set(BOB, "GooglyBob", ForcedLookStore.LookEffect.ELMO, Boolean.TRUE);
+				EyeBallServer.forcedLooks().set(BOB, "GooglyBob", Boolean.TRUE);
 				EyeBallServer.broadcastLook(s, BOB);
 			});
 			connection.waitForClientboundPackets();
 			this.ctx.waitTicks(3);
-			FaceRenderData bobElmo = this.extractFor(BOB);
-			this.report.check("server-synced Elmo look shows on the other player", bobElmo != null && bobElmo.elmo, "");
-			this.report.screenshot(this.ctx, "mp_other_player_elmo", "The other player transformed into Elmo (synced from the server)");
+			FaceRenderData bobSynced = this.extractFor(BOB);
+			this.report.check("server-synced googly look shows on the other player", bobSynced != null && bobSynced.googly, "");
+			this.report.screenshot(this.ctx, "mp_other_player_synced", "The other player's googly eyes, synced from the server");
+			this.config(c -> c.showSyncedLooks = false);
+			this.report.check("Show Synced Looks OFF hides it again", this.extractFor(BOB) == null, "");
+			this.config(c -> {
+				c.showSyncedLooks = true;
+				c.everyoneGoogly = true;
+			});
+			server.runOnServer(s -> {
+				EyeBallServer.forcedLooks().set(BOB, "GooglyBob", null);
+				EyeBallServer.broadcastLook(s, BOB);
+			});
+			connection.waitForClientboundPackets();
 
-			this.config(c -> c.getOrCreateOverride(BOB, "GooglyBob").elmo = Boolean.FALSE);
-			FaceRenderData overridden = this.extractFor(BOB);
-			this.report.check("Player Selection can remove an effect from one player", overridden != null && !overridden.elmo && overridden.googly, "");
 			this.config(c -> c.getOrCreateOverride(BOB, "GooglyBob").googly = Boolean.FALSE);
-			this.report.check("... and both effects from that player", this.extractFor(BOB) == null, "");
+			this.report.check("Player Selection can remove googly eyes from one player", this.extractFor(BOB) == null, "");
+			FaceRenderData selfStill = this.extract();
+			this.report.check("... without affecting anyone else", selfStill == null || selfStill.googly, "");
 			this.config(c -> c.clearOverride(BOB));
 
 			this.ctx.setScreen(() -> new PlayerSelectionScreen(null));
 			this.ctx.waitForScreen(PlayerSelectionScreen.class);
 			this.ctx.waitTicks(5);
-			int rows = this.ctx.computeOnClient(mc -> ((PlayerSelectionScreen) mc.gui.screen()).rowCount());
+			int rows = this.ctx.computeOnClient(mc -> ((PlayerSelectionScreen) McCompat.screen(mc)).rowCount());
 			this.report.check("Player Selection lists both players", rows >= 2, rows + " rows");
-			this.ctx.runOnClient(mc -> ((PlayerSelectionScreen) mc.gui.screen()).clickToggle(BOB, false));
+			this.ctx.runOnClient(mc -> ((PlayerSelectionScreen) McCompat.screen(mc)).clickToggle(BOB));
 			boolean rowClick = this.ctx.computeOnClient(mc -> {
 				EyeBallConfig.PlayerOverride o = ConfigManager.get().override(BOB);
 				return o != null && Boolean.FALSE.equals(o.googly);
@@ -1088,7 +1036,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 	}
 
 	/** What you see when another player talks: the main reason the animations are exaggerated. */
-	private void watchBobTalk(TestDedicatedServerContext server, TestDedicatedServerConnection connection) {
+	private void watchBobTalk(TestDedicatedServerContext server, GameTestCompat.Connection connection) {
 		this.report.section("Watching another player talk");
 		Sample idle = this.sample(BOB);
 		server.runOnServer(s -> s.getPlayerList().broadcastSystemMessage(
@@ -1120,7 +1068,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.ctx.waitTicks(30);
 	}
 
-	private void watchBobScream(TestDedicatedServerContext server, TestDedicatedServerConnection connection) {
+	private void watchBobScream(TestDedicatedServerContext server, GameTestCompat.Connection connection) {
 		this.report.section("Watching another player scream");
 		Sample idle = this.sample(BOB);
 		server.runOnServer(s -> s.getPlayerList().broadcastSystemMessage(Component.literal("<GooglyBob> AAAAAAAHHHHHHH HELP ME"), false));
@@ -1208,7 +1156,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		return samples;
 	}
 
-	private void performance(TestDedicatedServerContext server, TestDedicatedServerConnection connection) {
+	private void performance(TestDedicatedServerContext server, GameTestCompat.Connection connection) {
 		this.report.section("Performance");
 		server.runOnServer(s -> {
 			ServerPlayer real = s.getPlayerList().getPlayers().getFirst();
@@ -1229,7 +1177,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		});
 		connection.waitForClientboundPackets();
 		this.ctx.runOnClient(mc -> mc.options.fov().set(70));
-		this.ctx.getInput().lookAt(0.0F, 5.0F);
+		this.look(0.0F, 5.0F);
 		this.ctx.waitTicks(40);
 		long[] before = this.ctx.computeOnClient(mc -> new long[]{FaceRenderLayer.submittedFaces(), FaceRenderLayer.submitNanos(),
 			FaceMeshBuilder.builtFaces(), FaceMeshBuilder.buildNanos()});
@@ -1250,7 +1198,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.report.note("Frame rate with 14 animated faces on a software renderer (no GPU): " + fps + " FPS");
 		this.report.screenshot(this.ctx, "perf_crowd", "A crowd of 13 other players, all with animated googly eyes");
 
-		this.ctx.getInput().lookAt(180.0F, 0.0F);
+		this.look(180.0F, 0.0F);
 		this.ctx.waitTicks(60);
 		int hidden = this.ctx.computeOnClient(mc -> FaceAnimationManager.INSTANCE.simulatedLastTick());
 		this.report.check("faces out of view stop being simulated", hidden <= 2, hidden + " faces simulated while looking away");
@@ -1273,6 +1221,14 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 	}
 
 	// ------------------------------------------------------------------ helpers
+
+	/** Turns the player to a view rotation (what the newer game test API's {@code lookAt} does), on every version. */
+	private void look(float yaw, float pitch) {
+		this.ctx.runOnClient(mc -> {
+			mc.player.setYRot(yaw);
+			mc.player.setXRot(pitch);
+		});
+	}
 
 	private void config(Consumer<EyeBallConfig> change) {
 		this.ctx.runOnClient(mc -> {
@@ -1325,7 +1281,7 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 			if (data == null) {
 				throw new AssertionError("no face for " + player);
 			}
-			FaceAnchor anchor = data.elmo ? FaceAnchor.ELMO : FaceAnchor.PLAYER;
+			FaceAnchor anchor = FaceAnchor.PLAYER;
 			return new Sample(data.pose, FaceMeshBuilder.measure(data, anchor), FaceAnimationManager.INSTANCE.stateFor(player).activeMood());
 		});
 	}

@@ -1,25 +1,25 @@
 package com.nottorzz.eyeball.client.gui.widget;
 
+import com.nottorzz.eyeball.client.compat.CompatButton;
+import com.nottorzz.eyeball.client.compat.Gfx;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
-import net.minecraft.util.Util;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.InputWithModifiers;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import net.minecraft.util.Util;
 import org.jspecify.annotations.Nullable;
 
 /**
  * An ON/OFF switch row: label on the left, an animated pill switch on the right. Clicking anywhere
  * on the row (or pressing Enter/Space) flips it, and the change applies immediately.
- * With an empty label it is just the compact switch (used in the targets grid).
+ * With an empty label it is just the compact switch (used in Player Selection rows).
  */
-public final class ToggleSwitch extends AbstractButton {
+public final class ToggleSwitch extends CompatButton {
 	private static final int TRACK_W = 26;
 	private static final int TRACK_H = 12;
 
@@ -48,7 +48,7 @@ public final class ToggleSwitch extends AbstractButton {
 	}
 
 	@Override
-	protected void extractContents(GuiGraphicsExtractor g, int mouseX, int mouseY, float a) {
+	protected void drawContents(Gfx g, int mouseX, int mouseY, float a) {
 		boolean on = this.getter.getAsBoolean();
 		long now = Util.getMillis();
 		float dt = this.lastFrame < 0 ? 1.0F : Math.min(1.0F, (now - this.lastFrame) / 120.0F);

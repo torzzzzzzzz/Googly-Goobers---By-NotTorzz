@@ -17,12 +17,13 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Looks forced by operators through {@code /eyeball googly|elmo <targets> on|off}. They override a
- * player's own choice and are saved with the world so they survive server restarts.
+ * Googly eyes forced on or off by operators through {@code /googlygoobers eyes <targets> on|off}.
+ * They override a player's own choice and are saved with the world so they survive server restarts.
  */
 public final class ForcedLookStore {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -40,57 +41,60 @@ public final class ForcedLookStore {
 		return new ForcedLookStore(null);
 	}
 
-	public static ForcedLookStore load(Path file) {
+	/**
+	 * Loads {@code file}. When it doesn't exist yet, {@code legacyFile} (the name used by
+	 * pre-release builds) is read instead, and the looks are saved under the new name from then on.
+	 */
+	public static ForcedLookStore load(Path file, @Nullable Path legacyFile) {
 		ForcedLookStore store = new ForcedLookStore(file);
-		if (!Files.isRegularFile(file)) {
+		Path source = file;
+		if (!Files.isRegularFile(file) && legacyFile != null && Files.isRegularFile(legacyFile)) {
+			source = legacyFile;
+		}
+		if (!Files.isRegularFile(source)) {
 			return store;
 		}
-		try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
+		try (Reader reader = Files.newBufferedReader(source, StandardCharsets.UTF_8)) {
 			Map<String, JsonObject> raw = GSON.fromJson(reader, FILE_TYPE);
 			if (raw != null) {
 				for (Map.Entry<String, JsonObject> entry : raw.entrySet()) {
 					try {
 						UUID id = UUID.fromString(entry.getKey());
 						JsonObject json = entry.getValue();
-						Boolean googly = json.has("googly") && !json.get("googly").isJsonNull() ? json.get("googly").getAsBoolean() : null;
-						Boolean elmo = json.has("elmo") && !json.get("elmo").isJsonNull() ? json.get("elmo").getAsBoolean() : null;
 						String name = json.has("name") ? json.get("name").getAsString() : "";
-						if (googly != null || elmo != null) {
-							store.forced.put(id, new Forced(googly, elmo, name));
+						if (json.has("googly") && !json.get("googly").isJsonNull()) {
+							store.forced.put(id, new Forced(json.get("googly").getAsBoolean(), name));
 						}
-					} catch (IllegalArgumentException | IllegalStateException ignored) {
+					} catch (IllegalArgumentException | IllegalStateException | UnsupportedOperationException ignored) {
 						EyeBallMod.LOGGER.warn("Ignoring malformed forced look entry '{}'", entry.getKey());
 					}
 				}
 			}
 		} catch (IOException | JsonParseException e) {
-			EyeBallMod.LOGGER.warn("Could not read forced looks from {}", file, e);
+			EyeBallMod.LOGGER.warn("Could not read forced looks from {}", source, e);
+		}
+		if (source != file) {
+			store.save();
+			try {
+				Files.deleteIfExists(source);
+			} catch (IOException e) {
+				EyeBallMod.LOGGER.warn("Could not remove the old forced looks file {}", source, e);
+			}
 		}
 		return store;
 	}
 
-	/** Applies forced overrides on top of a player's self-chosen flags. */
+	/** Applies a forced override on top of a player's self-chosen flags. */
 	public int apply(UUID player, int selfFlags) {
 		Forced f = this.forced.get(player);
-		if (f == null) {
-			return selfFlags;
-		}
-		boolean googly = f.googly != null ? f.googly : Appearance.googly(selfFlags);
-		boolean elmo = f.elmo != null ? f.elmo : Appearance.elmo(selfFlags);
-		return Appearance.of(googly, elmo);
+		return f == null ? selfFlags & Appearance.LOOK_MASK : Appearance.of(f.googly);
 	}
 
-	/** Effective flags plus {@link Appearance#FORCED_GOOGLY}/{@link Appearance#FORCED_ELMO} bits, as sent to clients. */
+	/** Effective flags plus the {@link Appearance#FORCED_GOOGLY} bit, as sent to clients. */
 	public int syncFlags(UUID player, int selfFlags) {
 		int flags = this.apply(player, selfFlags);
-		Forced f = this.forced.get(player);
-		if (f != null) {
-			if (f.googly != null) {
-				flags |= Appearance.FORCED_GOOGLY;
-			}
-			if (f.elmo != null) {
-				flags |= Appearance.FORCED_ELMO;
-			}
+		if (this.forced.containsKey(player)) {
+			flags |= Appearance.FORCED_GOOGLY;
 		}
 		return flags;
 	}
@@ -104,21 +108,14 @@ public final class ForcedLookStore {
 	}
 
 	/**
-	 * Sets or clears ({@code value == null}) a forced effect.
+	 * Forces googly eyes on or off, or clears the override ({@code value == null}).
 	 *
 	 * @return true if something changed
 	 */
-	public boolean set(UUID player, String name, LookEffect effect, @Nullable Boolean value) {
+	public boolean set(UUID player, String name, @Nullable Boolean value) {
 		Forced old = this.forced.get(player);
-		Boolean googly = old != null ? old.googly : null;
-		Boolean elmo = old != null ? old.elmo : null;
-		if (effect == LookEffect.GOOGLY) {
-			googly = value;
-		} else {
-			elmo = value;
-		}
-		Forced updated = googly == null && elmo == null ? null : new Forced(googly, elmo, name);
-		if (java.util.Objects.equals(old, updated)) {
+		Forced updated = value == null ? null : new Forced(value, name);
+		if (Objects.equals(old, updated)) {
 			return false;
 		}
 		if (updated == null) {
@@ -138,12 +135,7 @@ public final class ForcedLookStore {
 		for (Map.Entry<UUID, Forced> entry : this.forced.entrySet()) {
 			JsonObject json = new JsonObject();
 			json.addProperty("name", entry.getValue().name);
-			if (entry.getValue().googly != null) {
-				json.addProperty("googly", entry.getValue().googly);
-			}
-			if (entry.getValue().elmo != null) {
-				json.addProperty("elmo", entry.getValue().elmo);
-			}
+			json.addProperty("googly", entry.getValue().googly);
 			raw.put(entry.getKey().toString(), json);
 		}
 		try {
@@ -158,11 +150,6 @@ public final class ForcedLookStore {
 		}
 	}
 
-	public enum LookEffect {
-		GOOGLY,
-		ELMO
-	}
-
-	public record Forced(@Nullable Boolean googly, @Nullable Boolean elmo, String name) {
+	public record Forced(boolean googly, String name) {
 	}
 }

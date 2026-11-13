@@ -51,7 +51,7 @@ public enum Expression {
 		return this.name().toLowerCase(Locale.ROOT);
 	}
 
-	/** Expressions a player can trigger on purpose (keybinds and the /eyeball expression command). */
+	/** Expressions a player can trigger on purpose (keybinds and the /googlygoobers expression command). */
 	public boolean isPlayerSelectable() {
 		return this != NEUTRAL && this != DIZZY && this != TALKING;
 	}
