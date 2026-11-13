@@ -171,6 +171,8 @@ tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.Client
 	}
 	jvmArgs.add("-Dfabric.client.gametest")
 	runDir = prodRunDir
+	// Always launch the game: the second launch checks that settings survived the restart.
+	outputs.upToDateWhen { false }
 	doFirst {
 		def dir = prodRunDir.get().asFile
 		dir.mkdirs()
@@ -216,6 +218,10 @@ def gameLauncher = javaToolchains.launcherFor {
 	languageVersion = JavaLanguageVersion.of(javaVersion)
 }
 tasks.withType(JavaExec).configureEach {
+	javaLauncher = gameLauncher
+}
+// Loom's production runs aren't JavaExec tasks; they have their own launcher setting.
+tasks.withType(net.fabricmc.loom.task.prod.AbstractProductionRunTask).configureEach {
 	javaLauncher = gameLauncher
 }
 

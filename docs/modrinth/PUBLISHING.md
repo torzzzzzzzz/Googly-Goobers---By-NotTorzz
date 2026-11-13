@@ -90,7 +90,15 @@ The version numbers match the `version` field inside each jar's `fabric.mod.json
 one game version each jar was built for: each jar refuses to load on other Minecraft versions
 (`"minecraft": "~26.3"`, `"~26.2"` and `"1.21.11"`).
 
-Before uploading, verify the files: `cd dist && sha256sum -c SHA256SUMS.txt`.
+Before uploading, verify the files: `cd dist && sha256sum -c SHA256SUMS.txt`. Expected SHA-256:
+
+```
+1c160ad0f20d1bb09d470d3dc94190e9a4c906092cbc931c65421462c4385b81  googly-goobers-1.0.0-mc26.3.jar
+26e4ce2664ea8e6c1a98dc4711d9d66ce84f30c5a3e2aaa83b628f9c7c6bca36  googly-goobers-1.0.0-mc26.2.jar
+62a53a7b1067f7d43186826182b2be87e09c93ec142d59fa4b4383b10c3218d3  googly-goobers-1.0.0-mc1.21.11.jar
+```
+
+These are exactly the jars that passed the in-game tests (see `docs/test-reports/README.md`).
 
 ## 4. After uploading
 

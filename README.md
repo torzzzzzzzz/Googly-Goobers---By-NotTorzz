@@ -154,6 +154,11 @@ without the mod.
 
 ## Version differences
 
+![The same faces on 26.3, 26.2 and 1.21.11](docs/screenshots/versions_comparison.png)
+
+*Idle, talking, screaming and hit on Minecraft 26.3 (top), 26.2 (middle) and 1.21.11 (bottom),
+captured from the release jars.*
+
 The three jars are built from the same source code and have the same features, settings, menu
 and look. The only differences are internal (method and class names that changed between
 Minecraft versions, isolated in small compat classes):
@@ -178,12 +183,14 @@ See [Known limitations](#known-limitations) for anything that was not tested.
 - Fabric only (no Forge/NeoForge/Quilt-specific builds). Minecraft 26.3, 26.2 and 1.21.11 only.
 - Other players only see your look if they have Googly Goobers too, and sharing needs the mod on
   the server.
-- Voice lip sync is built against Simple Voice Chat's plugin API (2.6.x). The automated tests feed
-  voice loudness through the same code path the Simple Voice Chat plugin uses, but a live
-  microphone and real voice traffic could not be tested.
-- The Mod Menu button is built against Mod Menu's API; see the test reports for what was checked.
-- The automated tests run on a software (CPU) renderer without a GPU. Real graphics cards were not
-  tested.
+- Voice lip sync is built against Simple Voice Chat's plugin API (2.6.x). The tests load the real
+  Simple Voice Chat and check that it loads the Googly Goobers plugin, and feed voice loudness
+  through the same code path the plugin uses, but a live microphone and real voice traffic between
+  two players could not be tested.
+- The automated tests run on a software (CPU) renderer without a GPU, on Linux. Real graphics
+  cards, Windows and macOS were not tested.
+- The second player in the multiplayer tests is a server-side fake player, not a second real
+  client.
 
 ## Building
 
@@ -215,10 +222,22 @@ screenshots:
 tools/run-gametest.sh [-Pmc=...] [task]             # headless Linux (Xvfb + EGL)
 ```
 
-Run it twice: the second launch also checks that settings survived the restart. Reports are
-written to `build/mc<version>/run/<task>/googly-goobers-test-report.md`. The reports of the
-release builds are in [`docs/test-reports/`](docs/test-reports/) and the screenshots in
-[`docs/screenshots/`](docs/screenshots/).
+Run it twice: the second launch also checks that settings survived the restart. Add
+`-PextraMods=/path/modmenu.jar,/path/voicechat.jar` to the production run to also check the Mod
+Menu and Simple Voice Chat integrations with the real mods. Reports are written to
+`build/mc<version>/run/<task>/googly-goobers-test-report.md`.
+
+Results for the released jars (every check passed, nothing crashed):
+
+| Minecraft | Java | Launch 1 | Launch 2 (restart) | With Mod Menu + Simple Voice Chat |
+| --- | --- | --- | --- | --- |
+| 26.3 | 25 | 141 / 141 | 150 / 150 | 145 / 145 |
+| 26.2 | 25 | 141 / 141 | 150 / 150 | 145 / 145 |
+| 1.21.11 | 21 | 141 / 141 | 150 / 150 | 145 / 145 |
+
+The results for the released jars are summarised in
+[`docs/test-reports/README.md`](docs/test-reports/README.md), with the full reports next to it and
+the screenshots in [`docs/screenshots/`](docs/screenshots/).
 
 ## Project layout
 
