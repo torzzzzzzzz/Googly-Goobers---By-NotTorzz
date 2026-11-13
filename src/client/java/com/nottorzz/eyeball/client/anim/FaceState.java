@@ -120,7 +120,7 @@ public final class FaceState {
 		}
 	}
 
-	/** Holds a deliberate expression for a while (keybinds, /eyeball expression, menu preview). */
+	/** Holds a deliberate expression for a while (keybinds, /googlygoobers expression, menu preview). */
 	public void express(Expression expression, int ticks) {
 		this.expression = expression;
 		this.expressionTicks = ticks;

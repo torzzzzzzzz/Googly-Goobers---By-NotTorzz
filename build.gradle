@@ -160,7 +160,8 @@ if (obfuscated) {
 tasks.register("runProductionClientGameTest", net.fabricmc.loom.task.prod.ClientProductionRunTask) {
 	group = "verification"
 	description = "Runs the in-game test suite against the release jar in a production Fabric environment."
-	def prodRunDir = layout.buildDirectory.dir("run/productionClientGameTest")
+	// A run with extra mods installed gets its own game folder, so it never mixes with the plain runs.
+	def prodRunDir = layout.buildDirectory.dir(findProperty("extraMods") ? "run/productionClientGameTestExtraMods" : "run/productionClientGameTest")
 	mods.from(releaseJarTask)
 	mods.from(productionGametestJar)
 	mods.from(configurations.productionRuntimeMods)
@@ -216,6 +217,12 @@ def gameLauncher = javaToolchains.launcherFor {
 }
 tasks.withType(JavaExec).configureEach {
 	javaLauncher = gameLauncher
+}
+
+// Reproducible archives: building the same sources again gives byte-identical jars (and checksums).
+tasks.withType(AbstractArchiveTask).configureEach {
+	preserveFileTimestamps = false
+	reproducibleFileOrder = true
 }
 
 jar {

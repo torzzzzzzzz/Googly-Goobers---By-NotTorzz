@@ -8,6 +8,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import net.fabricmc.fabric.api.client.gametest.v1.context.ClientGameTestContext;
+import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.ModContainer;
 
 /** Collects every check and screenshot, writes a Markdown report, and fails the run if any check failed. */
 final class TestReport {
@@ -51,6 +53,16 @@ final class TestReport {
 		List<String> out = new ArrayList<>();
 		out.add("# Googly Goobers - in-game test report");
 		out.add("");
+		out.add("| | |");
+		out.add("| --- | --- |");
+		out.add("| Googly Goobers | " + modVersion("eyeball") + " |");
+		out.add("| Minecraft | " + modVersion("minecraft") + " |");
+		out.add("| Fabric Loader | " + modVersion("fabricloader") + " |");
+		out.add("| Fabric API | " + modVersion("fabric-api") + " |");
+		out.add("| Java | " + System.getProperty("java.version") + " (" + System.getProperty("java.vendor") + ") |");
+		out.add("| Environment | " + (FabricLoader.getInstance().isDevelopmentEnvironment() ? "development (runClientGameTest)" : "production: release jar in a mods folder (runProductionClientGameTest)") + " |");
+		out.add("| Other mods | " + otherMods() + " |");
+		out.add("");
 		out.add("Passed: " + this.passed + ", failed: " + this.failures.size());
 		out.addAll(this.lines);
 		out.add("");
@@ -61,6 +73,27 @@ final class TestReport {
 		} catch (IOException e) {
 			EyeBallMod.LOGGER.error("Could not write test report", e);
 		}
+	}
+
+	private static String modVersion(String id) {
+		return FabricLoader.getInstance().getModContainer(id)
+			.map(mod -> mod.getMetadata().getVersion().getFriendlyString())
+			.orElse("not installed");
+	}
+
+	/** Mods other than Minecraft, Java, Fabric itself, Googly Goobers and its test mod. */
+	private static String otherMods() {
+		List<String> mods = new ArrayList<>();
+		for (ModContainer mod : FabricLoader.getInstance().getAllMods()) {
+			String id = mod.getMetadata().getId();
+			boolean builtIn = id.equals("minecraft") || id.equals("java") || id.equals("mixinextras") || id.startsWith("fabric")
+				|| id.equals("eyeball") || id.equals("eyeball-gametest") || mod.getContainingMod().isPresent();
+			if (!builtIn) {
+				mods.add(mod.getMetadata().getName() + " " + mod.getMetadata().getVersion().getFriendlyString());
+			}
+		}
+		mods.sort(String::compareTo);
+		return mods.isEmpty() ? "none" : String.join(", ", mods);
 	}
 
 	void finish() {

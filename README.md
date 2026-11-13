@@ -1,299 +1,249 @@
-# EyeBall Mod
+![Googly Goobers](branding/banner.png)
 
-Gives Minecraft players **enormous 3D googly eyes**, big cartoon eyebrows and a talking mouth.
-When someone talks, their eyes **swell up to about 1.6x** and their mouth flaps **wide open**;
-when they scream (`AAAAHHH`, or yelling into Simple Voice Chat) the eyes get even bigger, the mouth
-becomes a huge trembling oval and the head shakes. Hit someone and their eyes turn into **huge
-spinning hypnotic spirals** while their mouth drops open in shock. There's also an optional
-**fluffy red Elmo-style transformation** with the same facial animations.
+# Googly Goobers
 
-**Minecraft 26.3 and 26.2 · Fabric · client + optional server**
+**Huge 3D googly eyes, bouncy cartoon eyebrows and a talking mouth for every Minecraft player.**
 
-![Googly eyes](docs/screenshots/googly_idle.png)
+When someone talks, their eyes **swell up to about 1.6x** and their mouth flaps **wide open**.
+When they scream (`AAAAHHH`, or yelling into Simple Voice Chat) the eyes get even bigger, the
+mouth becomes a huge trembling oval and the head shakes. Hit someone and their eyes turn into
+**spinning black-and-white spirals** while stars orbit their head.
 
-**Watching another player** (from 3 blocks away): idle, talking, screaming
+**Fabric** · **Minecraft 26.3, 26.2 and 1.21.11** · client mod, with optional server-side sync
 
-![Another player idle, talking and screaming](docs/screenshots/talking_comparison.png)
-
-| Talking | Screaming | Hit reaction | Elmo screaming |
+| Idle | Talking | Screaming | Hit |
 | --- | --- | --- | --- |
-| ![Talking](docs/screenshots/talking.png) | ![Screaming](docs/screenshots/screaming.png) | ![Spiral eyes](docs/screenshots/hit_spiral.png) | ![Elmo screaming](docs/screenshots/elmo_screaming.png) |
+| ![Idle](docs/screenshots/googly_idle.png) | ![Talking](docs/screenshots/talking.png) | ![Screaming](docs/screenshots/screaming.png) | ![Spiral eyes](docs/screenshots/hit_spiral.png) |
 
-![The EyeBall menu](docs/screenshots/menu.png)
+![The Googly Goobers menu](docs/screenshots/menu.png)
 
-## What's new in 1.1.0
+## Downloads and requirements
 
-![1.0.0 talking vs 1.1.0 talking and screaming](docs/screenshots/before_after.png)
+Each Minecraft version has its own jar. Use the one that matches your game; a jar only loads on
+its own Minecraft version.
 
-- **Much bigger talking animations.** Talking eyes swell to about 1.6x (was 1.05x) with a pop
-  when talking starts and a smooth shrink when it stops; the mouth opens more than twice as far
-  (a scream about 3.5 times as far), in a different shape every syllable, and stretches as it
-  opens. The brows bounce harder and the head nods and sways.
-- **New screaming face** for `AAAAHHH`, `NOOOO`, shouted `HELP!!`, `😱`, yelling into Simple Voice
-  Chat, a new keybind and `/eyeball expression screaming`.
-- **New sliders:** Eye Enlargement, Mouth Opening and Overall Exaggeration, next to Animation Speed
-  and Expression Intensity in a new *Talking & Expressions* section.
-- Smooth everywhere: expressions cross-fade, big eyes never cover the mouth, and the eyes hold
-  still above a flapping mouth.
-- New previews: Screaming, Laughing and Elmo Scream.
-- Fixed: at 2x Animation Speed a face's mouth could break and disappear; turning Blinking off now
-  also stops a blink that is happening at that moment.
+| Minecraft | Jar | Fabric Loader | Fabric API | Java |
+| --- | --- | --- | --- | --- |
+| **26.3** | [`googly-goobers-1.0.0-mc26.3.jar`](dist/googly-goobers-1.0.0-mc26.3.jar) | 0.20.1 or newer | 0.166.2+26.3 or newer | 25 |
+| **26.2** | [`googly-goobers-1.0.0-mc26.2.jar`](dist/googly-goobers-1.0.0-mc26.2.jar) | 0.20.1 or newer | 0.161.0+26.2 or newer | 25 |
+| **1.21.11** | [`googly-goobers-1.0.0-mc1.21.11.jar`](dist/googly-goobers-1.0.0-mc1.21.11.jar) | 0.20.1 or newer | 0.141.6+1.21.11 or newer | 21 |
+
+SHA-256 checksums are next to each jar (`.sha256` files) and in [`dist/SHA256SUMS.txt`](dist/SHA256SUMS.txt).
+
+**Optional:** [Mod Menu](https://modrinth.com/mod/modmenu) adds a Configure button in the mod
+list. [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat) makes mouths move with
+real voice volume. Neither is required.
+
+## Installation
+
+1. Install [Fabric Loader](https://fabricmc.net/use/) 0.20.1 or newer for your Minecraft version.
+2. Put [Fabric API](https://modrinth.com/mod/fabric-api) and the Googly Goobers jar for your
+   Minecraft version into your `mods` folder. Keep only one Googly Goobers jar there.
+3. Start the game and press **G** to open the Googly Goobers menu.
+4. Optional, for multiplayer sync and operator commands: put the same Googly Goobers jar (and
+   Fabric API) on the server.
 
 ## Features
 
 **Googly eyes**
 - Real 3D eyeballs that stick out of the face: black plastic rim, shaded white dome, big pupils
-  with shiny highlights. Not a flat image.
-- Pupils behave like loose googly-eye discs. They follow where the player looks, glance at you
-  and at nearby players, lag behind head turns, drop when landing and bounce off the rim. The two
-  eyes move independently, and every player gets slightly different, goofy eye sizes.
-- Random blinking (sometimes a double blink), happy squinting.
-- Eyes bob with every step and bounce when jumping and landing.
+  with shiny highlights.
+- Pupils behave like loose googly-eye discs. They follow where the player looks, glance at you and
+  at nearby players, lag behind head turns, drop when landing and bounce off the rim. The two eyes
+  move independently.
+- Random blinking (sometimes a double blink). Eyes bob with every step and pop and bounce when
+  jumping, landing and talking.
+- Adjustable eye size, pupil size, eye spacing and movement.
 
-**Talking and expressions** (big, cartoony and impossible to miss)
-- When a player talks, **both eyes swell to about 1.5-1.8x** their size (with a springy pop when
-  they start, a little pulse on every stressed syllable, and a smooth shrink back when they stop).
-  The googly pupils keep wobbling on their own and jiggle with the words.
-- The **mouth opens wide** and changes shape with every syllable: a huge "AH", a round "OH", an
-  "EH", a toothy "EE" grin, a small "OO". Loud syllables get the big shapes. It stretches up and a
-  little sideways as it opens, with tongue and teeth.
-- The eyebrows bounce, and the head nods and sways while talking.
-- **Screaming**: `AAAAHHHH`, `NOOOOO`, `eeeek`, shouted `HELP!!` or `😱`, or yelling into the
-  microphone for a moment. The eyes get enormous (about 2x) with tiny terrified pupils, the mouth
-  opens into a huge trembling oval (you can see the uvula), the eyebrows shoot up and the head
-  shakes and is thrown back. Elmo flails his arms.
-- The face matches the message: laughing (`haha`, `lol`, `xD`), surprised (`wow`, `?!`),
-  shouting (ALL CAPS), screaming, angry (`grr`, `>:(`), excited (`yay!`, `let's go`), happy
-  (`:)`), confused (`huh?`) and a small talking mouth for short replies.
-- Every change blends smoothly: expressions cross-fade, every value moves through springs, and
-  the face is laid out so big eyes never cover the mouth and the mouth never hangs off the chin.
-- Works on servers that reformat chat as system messages (`[Rank] Name: hi`, `Name » hi`).
-- **Voice lip sync** with [Simple Voice Chat](https://modrinth.com/plugin/simple-voice-chat):
-  mouths follow the actual voice volume of whoever is speaking (louder = wider), and yelling turns
-  into the screaming face (optional, not required).
+**Talking, screaming and expressions** (big, cartoony and impossible to miss)
+- When a player talks, **both eyes swell to about 1.5-1.8x** (with a springy pop when they start,
+  a pulse on stressed syllables and a smooth shrink when they stop), the **mouth opens wide** in a
+  different shape every syllable (AH, OH, EH, EE, OO), the brows bounce and the head nods.
+- **Screaming** (`AAAAHHHH`, `NOOOOO`, `eeeek`, shouted `HELP!!`, `😱`, or yelling into the
+  microphone): the eyes grow to about **2x** with tiny terrified pupils, the mouth opens into a huge
+  trembling oval, the brows shoot up and the head shakes.
+- The face matches the message: laughing (`haha`, `lol`, `xD`), surprised (`wow`, `?!`), shouting
+  (ALL CAPS), angry (`grr`, `>:(`), excited (`yay!`), happy (`:)`), confused (`huh?`).
+- Works with servers that reformat chat (`[Rank] Name: hi`, `Name » hi`).
+- **Voice lip sync** with Simple Voice Chat: louder voice = wider mouth; yelling = screaming face.
 - Make faces on purpose with keybinds (surprised, angry, laughing, excited, happy, confused,
   screaming).
+- Smooth everywhere: expressions cross-fade, everything moves on springs, big eyes never cover
+  the mouth and the mouth never hangs off the chin.
 
-**Eyebrows**
-- Oversized arched brows that move up and down, tilt for anger, go one-up-one-down when
-  confused, shoot up when surprised, grow bigger when the face gets expressive and wiggle when
-  dizzy. They can be hidden, or kept but frozen, separately.
+**Hit reactions**
+- Taking damage from anything turns the eyes into huge **black-and-white spirals that spin**, the
+  mouth drops open in shock, the head wobbles, the body staggers and **cartoon stars orbit the
+  head**. A recovery blink brings the normal eyes back.
+- A hit interrupts talking; when the reaction ends the face goes back to talking if the player is
+  still talking, otherwise to normal.
 
-**Hit reaction: spiral eyes**
-- Taking damage from anything (players, mobs, falling, fire, explosions) instantly swaps the eyes
-  for huge black-and-white spirals that spin, then spin down. The mouth drops open in shock, the
-  head wobbles into a dizzy sway, the body staggers, and cartoon stars orbit the head.
-- A recovery blink turns the spirals back into normal eyes.
-- Priority is strict: a hit interrupts talking, and when the reaction ends the face goes back to
-  talking if the player is still talking, otherwise to normal.
-
-**Elmo-style transformation**
-- A separate mode with an original model: oversized rounded head, red fur (3 layers of fur
-  "shells" for a fluffy silhouette), big googly eyes, an orange oval nose and a big black mouth.
-- Talks with its mouth, head and arms, blinks, bounces when walking, and gets spiral eyes when
-  hit. In first person your arms become red and furry.
-- Works together with or independently of the googly eyes.
-
-**Choose who gets what**
-- Googly eyes and Elmo each have their own **Apply to Myself** and **Apply to Everyone** switch.
-- **Player Selection**: turn either effect on or off for individual players.
+**Settings menu** (press **G**)
+- Every effect has its own switch, plus sliders for sizes, speeds and how exaggerated everything is.
+- Changes apply **immediately**. Save Settings, Done and Escape write `config/googlygoobers.json`;
+  Reset to Defaults restores everything. Settings survive restarts.
+- A **live preview** of your own skin (default skin on the title screen) with 9 preview modes:
+  Googly Eyes, Talking, Screaming, Blinking, Surprised, Angry, Laughing, Confused, Spiral Hit.
+  Drag to rotate, scroll to zoom into the face.
+- **Player Selection**: a searchable list of online players with a Googly Eyes switch for each one.
 
 **Multiplayer**
-- Works on any server for **your own screen** (the effects are client-side rendering).
-- When the server also has EyeBall, your chosen look is **shared**: other players with EyeBall
-  see you with googly eyes / as Elmo, and talking and expressions are synced.
-- Operators get `/eyeball` commands to apply looks to players for everyone with the mod.
+- Works on any server for **your own screen** (the faces are client-side rendering).
+- When the server also has Googly Goobers, your look is **shared** with other players who have the
+  mod, talking and expressions are synced, and operators get commands.
 - Players without the mod are never affected and always see normal skins.
 
-## Installation
-
-**Download the jar for your Minecraft version:**
-
-| Minecraft | Download (1.1.0, latest) | Fabric API |
-| --- | --- | --- |
-| **26.3** | [`dist/eyeball-1.1.0.jar`](dist/eyeball-1.1.0.jar) | 0.166.2+26.3 or newer |
-| **26.2** | [`dist/eyeball-1.1.0-mc26.2.jar`](dist/eyeball-1.1.0-mc26.2.jar) | 0.161.0+26.2 or newer |
-
-Both have exactly the same features. Use the jar that matches your game: each one only loads on
-its own Minecraft version. The previous release is still there:
-[`dist/eyeball-1.0.0.jar`](dist/eyeball-1.0.0.jar) (26.3) and
-[`dist/eyeball-1.0.0-mc26.2.jar`](dist/eyeball-1.0.0-mc26.2.jar) (26.2). Only keep one EyeBall
-jar in your `mods` folder.
-
-1. Install [Fabric Loader](https://fabricmc.net/use/) 0.20.1 or newer for your Minecraft version.
-2. Put [Fabric API](https://modrinth.com/mod/fabric-api) and the EyeBall jar in your `mods` folder.
-3. Optional: [Mod Menu](https://modrinth.com/mod/modmenu) (adds a Configure button in the mod
-   list) and Simple Voice Chat (voice lip sync).
-4. Optional, for multiplayer sync: put the same EyeBall jar (and Fabric API) on the server.
-
-Java 25 is required (the same as Minecraft 26.2 and 26.3).
-
-## Using it
-
-Press **G** to open the menu (rebind it in *Options > Controls > Key Binds > EyeBall Mod*).
+## Settings
 
 | Section | Settings |
 | --- | --- |
-| Modes | Googly Eyes, Elmo Transformation |
+| General | Googly Eyes (main switch) |
 | Animations | Talking Animations, Eyebrows, Eyebrow Animations, Eye Movement, Blinking, Voice Lip Sync |
 | Hit Reactions | Hit Reactions, Spiral Eyes, Head Wobble, Cartoon Stars, Spiral Rotation Speed, Damage Reaction Duration, Reaction Intensity |
-| Appearance | Eye Size, Pupil Size, Mouth Size, Eyebrow Size, Eye Spacing, Character Size |
+| Appearance | Eye Size, Pupil Size, Mouth Size, Eyebrow Size, Eye Spacing, Face Size |
 | Talking & Expressions | Eye Enlargement, Mouth Opening, Animation Speed, Overall Exaggeration, Expression Intensity |
-| Who Gets The Effects | Apply to Myself / Apply to Everyone (separately for Googly and Elmo), Player Selection |
+| Who Gets Googly Eyes | Apply to Myself, Apply to Everyone, Player Selection |
 | Multiplayer | Show Synced Looks, Share My Look, server sync status |
 
-- Every switch and slider applies **immediately**; turning something OFF makes it disappear at once.
-- **Save Settings** writes `config/eyeball.json`; Done and Escape also save. **Reset to Defaults** restores everything.
-- The **preview** on the right shows your own skin with the selected preview: Googly Eyes,
-  Talking, Screaming, Blinking, Surprised, Angry, Laughing, Spiral Hit, Elmo, Elmo Talk, Elmo
-  Scream, Elmo Hit. Drag to rotate, scroll to zoom into the face. It works from the title screen too.
-
-The **Talking & Expressions** sliders:
-
-| Slider | What it does | Range (default) |
+| Talking slider | What it does | Range (default) |
 | --- | --- | --- |
 | Eye Enlargement | How much the eyes grow when talking and screaming. At 1.00x they reach about 1.6x when talking and 2x when screaming; 0 turns the growth off. | 0 - 2 (1.00x) |
 | Mouth Opening | How wide the mouth opens when talking and screaming. | 0.25 - 2 (1.00x) |
-| Animation Speed | How fast every animation plays (talking, blinking, pupils, screaming). | 0.5 - 2 (1.00x) |
-| Overall Exaggeration | Turns all the cartoon motion up or down at once: eye growth and pops, mouth opening, eyebrow bounce, head nods, sways and shakes. | 0.25 - 2 (1.00x) |
+| Animation Speed | How fast every animation plays. | 0.5 - 2 (1.00x) |
+| Overall Exaggeration | All cartoon motion at once: eye growth and pops, mouth opening, brow bounce, head nods and shakes. | 0.25 - 2 (1.00x) |
 | Expression Intensity | How strongly each expression shows its own shape (angry brows, smiles, squints). | 0 - 2 (1.00x) |
 
-**Keybinds** (all rebindable): Open EyeBall Menu (G), Toggle Googly Eyes, Toggle Elmo
-Transformation, and Make a Face: Surprised / Angry / Laughing / Excited / Happy / Confused /
-Screaming (unbound by default).
+## Keybinds
 
-**Commands** (only when the server has EyeBall):
+All keybinds are in *Options > Controls > Key Binds > Googly Goobers* and can be rebound.
+
+| Key | Action |
+| --- | --- |
+| **G** | Open the Googly Goobers menu |
+| unbound | Toggle Googly Eyes |
+| unbound | Make a Face: Surprised / Angry / Laughing / Excited / Happy / Confused / Screaming |
+
+## Commands
+
+Commands need Googly Goobers on the server. `/googly` is a short alias for `/googlygoobers`.
 
 | Command | Who | What |
 | --- | --- | --- |
-| `/eyeball googly <players> on\|off\|reset` | operators | force googly eyes on players for everyone with the mod |
-| `/eyeball elmo <players> on\|off\|reset` | operators | force the Elmo transformation |
-| `/eyeball react <players>` | operators | play a spiral-eye hit reaction |
-| `/eyeball expression <name>` | everyone | make a face nearby players see (e.g. `screaming`) |
-| `/eyeball status` | everyone | list who wears what (and who doesn't have the mod) |
+| `/googlygoobers eyes <players> on\|off\|reset` | operators | Force googly eyes on or off for players (seen by everyone with the mod); `reset` gives the choice back to each player |
+| `/googlygoobers react <players>` | operators | Play a spiral-eye hit reaction |
+| `/googlygoobers expression <name>` | everyone | Make a face nearby players see (`surprised`, `angry`, `laughing`, `excited`, `happy`, `confused`, `screaming`, ...) |
+| `/googlygoobers status` | everyone | List who wears googly eyes (and who doesn't have the mod) |
 
-Forced looks are saved with the world (`eyeball_forced_looks.json`).
+Forced looks are saved with the world in `googlygoobers_forced_looks.json`.
 
 ## What other players see
 
-| You have EyeBall | Server has EyeBall | Other player has EyeBall | Result |
+| You have the mod | Server has the mod | Other player has the mod | Result |
 | --- | --- | --- | --- |
-| yes | no | - | You see effects on players you choose. Nobody else sees anything. |
-| yes | yes | yes | Both of you see each other's chosen looks, talking and expressions synced. |
+| yes | no | - | You see googly eyes on the players you choose. Nobody else sees anything. |
+| yes | yes | yes | You see each other's chosen looks; talking and expressions are synced. |
 | yes | yes | no | They see your normal skin. Nothing is forced onto players without the mod. |
 
-Hit reactions are detected from the game's own damage events, so they work for every visible
-player even without server support. Chat-based talking works on any server.
+Hit reactions use the game's own damage events, so they work for every visible player even
+without server support. Chat-based talking works on any server.
+
+**What the mod sends:** only when the server also runs Googly Goobers, your client tells the
+server whether you show googly eyes, and when you chat or make a face, so other modded players'
+faces animate. Nothing is sent to any other server or service, and nothing is sent to servers
+without the mod.
+
+## Version differences
+
+The three jars are built from the same source code and have the same features, settings, menu
+and look. The only differences are internal (method and class names that changed between
+Minecraft versions, isolated in small compat classes):
+
+- Minecraft 1.21.11 is obfuscated, so its jar is compiled against Mojang's official mappings and
+  remapped to Fabric's intermediary names; 26.x is unobfuscated and needs no remapping.
+- 1.21.11 runs on Java 21; 26.2 and 26.3 need Java 25.
+
+See [Known limitations](#known-limitations) for anything that was not tested.
 
 ## Compatibility and performance
 
-- Built for Minecraft 26.3 and 26.2 with Fabric API only. No other libraries.
-- The face is drawn as a render layer attached to the head bone (like vanilla hats and skulls),
-  so it follows all head and body animations, crouching and swimming, both arm types (wide/slim)
-  and any skin. It also follows mods that pose the head.
+- The face is a render layer attached to the head (like vanilla hats), so it follows all head and
+  body animations, crouching and swimming, both arm types and any skin, and mods that pose the head.
 - Pushed forward automatically when wearing a helmet, a skull or a carved pumpkin. Hidden for
-  invisible players and spectators (no floating eyes giving anyone away).
-- The Elmo renderer is only used for players who are Elmo on your screen; everyone else goes
-  through the vanilla renderer untouched.
-- Performance: faces are only simulated while visible (or while an animation is still playing);
-  far-away faces use fewer polygons; nothing runs in the background. See the test report below
-  for measured numbers.
+  invisible players and spectators.
+- Faces are only animated while visible (or while an animation is still playing); far-away faces use
+  fewer polygons; nothing runs in the background.
+
+## Known limitations
+
+- Fabric only (no Forge/NeoForge/Quilt-specific builds). Minecraft 26.3, 26.2 and 1.21.11 only.
+- Other players only see your look if they have Googly Goobers too, and sharing needs the mod on
+  the server.
+- Voice lip sync is built against Simple Voice Chat's plugin API (2.6.x). The automated tests feed
+  voice loudness through the same code path the Simple Voice Chat plugin uses, but a live
+  microphone and real voice traffic could not be tested.
+- The Mod Menu button is built against Mod Menu's API; see the test reports for what was checked.
+- The automated tests run on a software (CPU) renderer without a GPU. Real graphics cards were not
+  tested.
 
 ## Building
 
 ```bash
-./gradlew build              # Minecraft 26.3 -> build/libs/eyeball-1.1.0.jar
-./gradlew build -Pmc=26.2    # Minecraft 26.2 -> build/mc26.2/libs/eyeball-1.1.0-mc26.2.jar
+./gradlew build                  # Minecraft 26.3    -> build/mc26.3/libs/googly-goobers-1.0.0-mc26.3.jar
+./gradlew build -Pmc=26.2        # Minecraft 26.2    -> build/mc26.2/libs/googly-goobers-1.0.0-mc26.2.jar
+./gradlew build -Pmc=1.21.11     # Minecraft 1.21.11 -> build/mc1.21.11/libs/googly-goobers-1.0.0-mc1.21.11.jar
 ```
 
-One codebase serves both versions. `versions/<mc>.properties` holds each version's Minecraft,
-Fabric API and Mod Menu versions. The few places where the game's code differs live in
-`src/client/java-mc26.2/` and `src/client/java-mc26.3/` (model submission and how the game
-picks a player renderer). Only the selected version's folder is compiled.
+Building needs a Java 25 JDK (it can also compile the Java 21 jar for 1.21.11). Running the game
+for 1.21.11 uses a Java 21 runtime, which Gradle finds automatically if it is installed.
 
-Textures are generated by `tools/generate_textures.py` (all original; nothing is copied from
-other mods or packs).
+`versions/<mc>.properties` holds each version's Minecraft, Fabric API, Mod Menu and Java versions.
+Code that differs between Minecraft versions lives in `src/*/java-mc26.x/` (26.2 and 26.3) and
+`src/*/java-mc1.21.x/` (1.21.11); everything else is shared.
+
+The in-game texture is made by `tools/generate_textures.py`; the icon, logo and banner by
+`tools/make_branding.py` from `branding/source/`.
 
 ## Testing
 
-The mod ships with an automated in-game test suite that launches a real Minecraft client,
-creates a world and a dedicated server, and checks every feature while taking screenshots:
+The mod has an automated in-game test suite that launches a real Minecraft client, creates a
+world and a dedicated server with a second player, and checks every feature while taking
+screenshots:
 
 ```bash
-./gradlew runClientGameTest              # desktop, development environment
-./gradlew runProductionClientGameTest    # against the built release jar in a production Fabric setup
-./tools/run-gametest.sh                  # headless Linux (Xvfb + EGL)
+./gradlew runClientGameTest [-Pmc=...]              # development environment
+./gradlew runProductionClientGameTest [-Pmc=...]    # the release jar in a real Fabric install
+tools/run-gametest.sh [-Pmc=...] [task]             # headless Linux (Xvfb + EGL)
 ```
 
-Add `-Pmc=26.2` to any of these to test the Minecraft 26.2 version.
-
-The report is written to `build/run/clientGameTest/eyeball-test-report.md` (or
-`build/run/productionClientGameTest/` for the production run). Run it twice: the second launch
-also checks that settings survived the restart.
-
-Each launch runs 145 checks, and the second launch adds 9 restart-persistence checks (154 in
-total). They are grouped into these areas:
-- the title-screen menu
-- googly rendering, pupil movement (each eye independently) and blinking
-- talking, measured on the rendered face: the eyes grow to 1.5-1.8x with a pop at the start and
-  shrink back smoothly, the mouth opens much wider and stretches, several mouth shapes, the eyes
-  don't bob with the mouth and never cover it, the mouth never hangs off the chin, brows and head
-  move; plus the 9 chat-detected expressions
-- screaming: chat detection (and what is *not* a scream), the keybind, huge eyes, the tall oval
-  mouth with uvula, raised brows, tiny pupils, head shake, no clipping
-- deliberate expressions and eyebrows
-- the four talking sliders (Eye Enlargement, Mouth Opening, Animation Speed, Overall Exaggeration)
-- the hit reaction (spirals appear, rotate, finish and return to normal)
-- animation priority while talking
-- smooth transitions: one long run through idle, talking, screaming, a hit, talking again and
-  idle, checked tick by tick for jumps and overlaps
-- every individual setting
-- Elmo (including talking, screaming and first person)
-- the main ON/OFF switches
-- the menu with the new sliders, all 12 preview modes, Save, Reset and Player Selection
-- multiplayer against a real dedicated server with a second player (shared looks, `/eyeball`
-  commands, watching them talk and scream, relayed expressions, remote spiral eyes, synced Elmo,
-  per-player choices) and voice: microphone loudness fed through the same path Simple Voice Chat
-  uses (talking, louder = wider, yelling = screaming, silence = normal)
-- performance with 14 animated players, including off-screen culling
-- settings persistence across a restart
-
-The latest reports are [`docs/test-report.md`](docs/test-report.md) (Minecraft 26.3) and
-[`docs/test-report-mc26.2.md`](docs/test-report-mc26.2.md) (Minecraft 26.2); screenshots are in
-[`docs/screenshots`](docs/screenshots). Measured on a CPU-only software renderer (no GPU), a
-face costs about 70 microseconds of CPU per frame. Faces that are off screen cost nothing.
-
-A standalone dedicated server (`./gradlew runServer`) also starts cleanly with the mod; it
-needs no client classes.
+Run it twice: the second launch also checks that settings survived the restart. Reports are
+written to `build/mc<version>/run/<task>/googly-goobers-test-report.md`. The reports of the
+release builds are in [`docs/test-reports/`](docs/test-reports/) and the screenshots in
+[`docs/screenshots/`](docs/screenshots/).
 
 ## Project layout
 
 | Package | System |
 | --- | --- |
-| `client.render` | 3D facial rendering (eye, brow, mouth, nose and star meshes, the face layer) |
-| `client.anim` | Animation: springs, eye animator (pupils, blinking, bounce), brow animator, mouth animator, damage reaction, per-player face state with priority |
-| `client.render.elmo` | Elmo transformation (model, fur shells, renderer) |
+| `client.render` | 3D face rendering (eye, brow, mouth and star meshes, the face layer) |
+| `client.anim` | Animation: springs, eyes (pupils, blinking, bounce), brows, mouth, hit reactions, per-player state |
 | `client.config` | Settings and persistence |
 | `client.gui` | Menu, preview, player selection |
-| `client.target` | Who gets which effect |
+| `client.target` | Who gets googly eyes |
 | `client.talk`, `client.voice` | Chat and voice talking detection |
-| `network`, `server`, `client.network` | Multiplayer synchronisation and commands |
+| `client.compat`, `compat` | The few calls that differ between Minecraft versions |
+| `network`, `server`, `client.network` | Multiplayer sync and commands |
 
-## Known limitations
+The mod id and Java packages are still `eyeball` (from the project's original name, EyeBall Mod)
+so existing settings and server data keep working. Players never see it.
 
-- Minecraft 26.3 and 26.2 with Fabric only.
-- Other players only see your look if they have EyeBall too, and sharing needs EyeBall on the server.
-- Voice lip sync is built against Simple Voice Chat's client API (2.6.x). The in-game tests feed
-  voice loudness through the same path the Simple Voice Chat plugin uses (talking, louder =
-  wider, yelling = screaming, silence = normal face), but Simple Voice Chat itself and a live
-  microphone could not be part of the automated test environment.
-- Players still on EyeBall 1.0.0 don't know the screaming face: on their screen a screamed chat
-  message shows the old shouting face, and the Screaming key shows a neutral face. Everything else
-  works between 1.0.0 and 1.1.0 (same network format).
-- The Mod Menu button is built against Mod Menu 21.0.0's API. Mod Menu itself is not part of the
-  automated tests; the G key and the menu are.
+## History
 
-## Notes
+Googly Goobers is the continuation of the private EyeBall Mod (1.0.0 and 1.1.0 for Minecraft 26.3
+and 26.2). Its complete development history is kept in this repository; the original 26.3 jar is
+backed up in [`backup/`](backup/). See [CHANGELOG.md](CHANGELOG.md) for what changed.
 
-The Elmo-style transformation is an unofficial, fan-made tribute built from original models and
-textures. It is not affiliated with or endorsed by Sesame Workshop.
+## License
+
+No license has been chosen yet. Until one is added, all rights are reserved by the author.
+
+Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.

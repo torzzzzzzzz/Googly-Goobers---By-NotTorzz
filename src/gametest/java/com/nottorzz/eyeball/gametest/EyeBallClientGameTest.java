@@ -25,6 +25,7 @@ import com.nottorzz.eyeball.client.render.FaceRenderData;
 import com.nottorzz.eyeball.client.render.FaceRenderLayer;
 import com.nottorzz.eyeball.client.target.SyncedLooks;
 import com.nottorzz.eyeball.client.target.TargetResolver;
+import com.nottorzz.eyeball.client.voice.VoiceLipSync;
 import com.nottorzz.eyeball.compat.voice.VoiceActivity;
 import com.nottorzz.eyeball.gametest.compat.GameTestCompat;
 import com.nottorzz.eyeball.server.EyeBallServer;
@@ -45,9 +46,11 @@ import net.fabricmc.fabric.api.client.gametest.v1.context.TestServerContext;
 import net.fabricmc.fabric.api.client.gametest.v1.context.TestSingleplayerContext;
 import net.fabricmc.fabric.api.entity.FakePlayer;
 import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.entrypoint.EntrypointContainer;
 import net.minecraft.client.CameraType;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
 import net.minecraft.network.chat.Component;
@@ -82,11 +85,16 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.ctx = context;
 		Path runDir = FabricLoader.getInstance().getGameDir();
 		context.getInput().resizeWindow(1280, 720);
+		// The menu background blur is a full-screen effect that is extremely slow on the CPU-only
+		// renderer used for headless test runs; it starved world loading on Minecraft 1.21.11.
+		// It is a vanilla visual setting and doesn't affect anything the mod does.
+		context.runOnClient(mc -> mc.options.menuBackgroundBlurriness().set(0));
 		try {
 			boolean verifiedPersistence = this.verifyPersistedSettings(runDir);
 			this.config(c -> c.copyFrom(EyeBallConfig.defaults()));
 			this.titleScreenMenu();
 			this.singleplayer();
+			this.optionalIntegrations();
 			this.multiplayer();
 			if (!verifiedPersistence) {
 				this.writePersistedSettings(runDir);
@@ -890,6 +898,64 @@ public final class EyeBallClientGameTest implements FabricClientGameTest {
 		this.ctx.clickScreenButton("Done");
 		this.ctx.waitTicks(3);
 		this.report.check("Done closes the menu", this.ctx.computeOnClient(mc -> McCompat.screen(mc) == null), "");
+	}
+
+	// ------------------------------------------------------------------ optional integrations
+
+	/**
+	 * Mod Menu and Simple Voice Chat are optional. When they are installed (a separate run with the
+	 * real mods in the mods folder), check that both pick up Googly Goobers. Reflection keeps the test
+	 * mod free of compile-time dependencies on them.
+	 */
+	private void optionalIntegrations() {
+		boolean modMenu = FabricLoader.getInstance().isModLoaded("modmenu");
+		boolean voice = FabricLoader.getInstance().isModLoaded("voicechat");
+		if (!modMenu && !voice) {
+			this.report.note("Mod Menu and Simple Voice Chat are not installed in this run (their integrations are checked in a run with both installed).");
+			return;
+		}
+		this.report.section("Optional integrations (real Mod Menu / Simple Voice Chat installed)");
+		if (modMenu) {
+			String version = FabricLoader.getInstance().getModContainer("modmenu").orElseThrow().getMetadata().getVersion().getFriendlyString();
+			this.report.note("Mod Menu " + version + " is installed.");
+			String opened = this.ctx.computeOnClient(mc -> {
+				for (EntrypointContainer<Object> container : FabricLoader.getInstance().getEntrypointContainers("modmenu", Object.class)) {
+					if (container.getProvider().getMetadata().getId().equals("eyeball")) {
+						try {
+							Object api = container.getEntrypoint();
+							Object factory = api.getClass().getMethod("getModConfigScreenFactory").invoke(api);
+							Class<?> factoryType = Class.forName("com.terraformersmc.modmenu.api.ConfigScreenFactory");
+							Object screen = factoryType.getMethod("create", Screen.class).invoke(factory, (Object) null);
+							return screen == null ? "null" : screen.getClass().getName();
+						} catch (ReflectiveOperationException e) {
+							return e.toString();
+						}
+					}
+				}
+				return "no modmenu entrypoint";
+			});
+			this.report.check("Mod Menu's Configure button opens the Googly Goobers menu", EyeBallConfigScreen.class.getName().equals(opened), opened);
+			this.ctx.setScreen(() -> {
+				try {
+					return (Screen) Class.forName("com.terraformersmc.modmenu.gui.ModsScreen").getConstructor(Screen.class).newInstance((Object) null);
+				} catch (ReflectiveOperationException e) {
+					throw new AssertionError("Could not open Mod Menu", e);
+				}
+			});
+			this.ctx.waitTicks(10);
+			this.ctx.getInput().typeChars("googly");
+			this.ctx.waitTicks(10);
+			String screenName = this.ctx.computeOnClient(mc -> String.valueOf(McCompat.screen(mc)));
+			this.report.check("Mod Menu's mod list opens with Googly Goobers installed", screenName.contains("ModsScreen"), screenName);
+			this.report.screenshot(this.ctx, "modmenu_list", "Mod Menu's mod list, searched for Googly Goobers");
+			this.ctx.setScreen(() -> null);
+		}
+		if (voice) {
+			String version = FabricLoader.getInstance().getModContainer("voicechat").orElseThrow().getMetadata().getVersion().getFriendlyString();
+			this.report.note("Simple Voice Chat " + version + " is installed.");
+			this.report.check("Simple Voice Chat loaded the Googly Goobers voice plugin", VoiceActivity.isPluginActive(), "");
+			this.report.check("Voice Lip Sync is available in the menu", this.ctx.computeOnClient(mc -> VoiceLipSync.isAvailable()), "");
+		}
 	}
 
 	// ------------------------------------------------------------------ multiplayer
