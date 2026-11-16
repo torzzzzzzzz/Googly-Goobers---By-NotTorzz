@@ -43,8 +43,13 @@ BASE_FROM_PAST = {"went": "go", "ate": "eat", "saw": "see", "wrote": "write", "t
                   "brought": "bring", "felt": "feel", "left": "leave", "kept": "keep", "began": "begin"}
 
 # (pattern, replacement-function or string, category, message)
+_PAST = "|".join(PARTICIPLES)
+
 RULES: list[tuple[re.Pattern, Any, str, str]] = [
-    (re.compile(r"\b(could|should|would|must|might|may)\s+of\b", re.I), lambda m: f"{m.group(1)} have", "grammar",
+    (re.compile(r"\b(could|should|would|must|might|may)\s+(?:of|have)\s+(" + _PAST + r")\b", re.I),
+     lambda m: f"{m.group(1)} have {PARTICIPLES[m.group(2).lower()]}", "grammar",
+     "Use “have” plus the past participle after modal verbs (e.g. “could have gone”)."),
+    (re.compile(r"\b(could|should|would|must|might|may)\s+of\b(?!\s+(?:" + _PAST + r")\b)", re.I), lambda m: f"{m.group(1)} have", "grammar",
      "Use “have”, not “of”, after modal verbs."),
     (re.compile(r"\balot\b", re.I), "a lot", "spelling", "“A lot” is written as two words."),
     (re.compile(r"\birregardless\b", re.I), "regardless", "grammar", "Use “regardless”."),
@@ -75,7 +80,7 @@ RULES: list[tuple[re.Pattern, Any, str, str]] = [
     (re.compile(r"\bI\s+is\b"), "I am", "agreement", "Use “I am”."),
     (re.compile(r"\bthere\s+is\s+(many|several|few|two|three|four|five|some people|lots)\b", re.I),
      lambda m: f"{_case(m.group(0), 'there')} are {m.group(1)}", "agreement", "Use “there are” with plural nouns."),
-    (re.compile(r"\b(have|has|had|having)\s+(" + "|".join(PARTICIPLES) + r")\b", re.I),
+    (re.compile(r"(?<!could )(?<!should )(?<!would )(?<!must )(?<!might )(?<!may )\b(have|has|had|having)\s+(" + "|".join(PARTICIPLES) + r")\b", re.I),
      lambda m: f"{m.group(1)} {PARTICIPLES[m.group(2).lower()]}", "tense",
      "Use the past participle after have/has/had."),
     (re.compile(r"\b(did|does|do|didn't|doesn't|don't|to|will|can|could|should|would)\s+(" + "|".join(BASE_FROM_PAST) + r")\b", re.I),

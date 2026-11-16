@@ -51,7 +51,9 @@ export default function QA() {
     if (ai.data && !ai.data.ok && engine === "ai") setEngine("offline");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ai.data?.ok]);
-  useEffect(() => endRef.current?.scrollIntoView({ behavior: "smooth" }), [turns.length, run.text]);
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [turns.length, run.text]);
 
   const ask = (q = question, eng: EngineChoice = engine) => {
     if (!q.trim() || !sources.length) return;

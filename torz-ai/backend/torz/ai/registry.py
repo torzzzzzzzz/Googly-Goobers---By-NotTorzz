@@ -1,6 +1,7 @@
 """Provider catalogue and defaults."""
 from __future__ import annotations
 
+import os
 from typing import Any
 
 from .providers.anthropic import AnthropicProvider
@@ -35,7 +36,8 @@ DEFAULT_AI_SETTINGS: dict[str, Any] = {
     "temperature": 0.7,
     "num_ctx": 8192,
     "providers": {
-        "ollama": {"base_url": OllamaProvider.default_base_url, "model": "", "enabled": True, "think": False},
+        "ollama": {"base_url": os.environ.get("TORZ_OLLAMA_URL", OllamaProvider.default_base_url), "model": "",
+                   "enabled": True, "think": False},
         "openai_compatible": {
             "base_url": OpenAICompatibleProvider.default_base_url,
             "model": "",

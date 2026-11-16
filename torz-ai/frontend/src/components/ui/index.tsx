@@ -230,8 +230,8 @@ export function Slider({ value, onChange, min, max, step = 1, labels }: { value:
       />
       {labels && (
         <div className="mt-1.5 flex justify-between text-[0.7rem] text-muted">
-          {labels.map((l) => (
-            <span key={l}>{l}</span>
+          {labels.map((l, i) => (
+            <span key={`${i}-${l}`}>{l}</span>
           ))}
         </div>
       )}

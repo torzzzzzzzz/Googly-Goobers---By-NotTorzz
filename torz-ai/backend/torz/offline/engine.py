@@ -296,15 +296,21 @@ def study_guide(text: str) -> dict[str, Any]:
 # ------------------------------------------------------------------------------------------------ grading
 
 
-def grade_text_answer(student: str, model_answer: str) -> dict[str, Any]:
-    """Approximate grading by overlap of meaningful word stems."""
+def grade_text_answer(student: str, model_answer: str, question: str = "") -> dict[str, Any]:
+    """Approximate grading by coverage of the model answer's key word stems.
+
+    Words that already appear in the question are not required in the answer (the student does not
+    need to repeat "the Calvin cycle" when asked where the Calvin cycle takes place).
+    """
     a = {stem(t) for t in tokens(student or "")}
     b = {stem(t) for t in tokens(model_answer or "")}
+    q = {stem(t) for t in tokens(question or "")}
+    required = (b - q) or b
     if not b:
         return {"score": 0.0, "verdict": "incorrect", "feedback": "No reference answer is available."}
     if not a:
         return {"score": 0.0, "verdict": "incorrect", "feedback": f"No answer given. Expected: {model_answer}"}
-    recall = len(a & b) / len(b)
+    recall = len(a & required) / len(required)
     if recall >= 0.6:
         return {"score": 1.0, "verdict": "correct", "feedback": "Your answer covers the key points (approximate offline grading)."}
     if recall >= 0.3:

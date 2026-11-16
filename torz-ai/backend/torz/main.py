@@ -75,15 +75,19 @@ def create_app(config: Optional[AppConfig] = None,
     index_cache: dict[str, str] = {}
 
     def index_html() -> str:
-        if "html" not in index_cache or config.dev_mode:
+        # Re-read when the bundle is rebuilt (mtime changes) so asset names never go stale.
+        mtime = str((dist / "index.html").stat().st_mtime_ns)
+        if index_cache.get("mtime") != mtime:
             raw = (dist / "index.html").read_text(encoding="utf-8")
             meta = f'<meta name="torz-token" content="{html.escape(token)}">'
             index_cache["html"] = raw.replace("<head>", "<head>\n    " + meta, 1)
+            index_cache["mtime"] = mtime
         return index_cache["html"]
 
     @app.exception_handler(StarletteHTTPException)
     async def http_handler(request: Request, exc: StarletteHTTPException):
-        if exc.status_code == 404 and not request.url.path.startswith("/api") and (dist / "index.html").exists():
+        if (exc.status_code == 404 and not request.url.path.startswith(("/api", "/assets/"))
+                and (dist / "index.html").exists()):
             return HTMLResponse(index_html())
         return JSONResponse({"detail": exc.detail}, status_code=exc.status_code)
 
@@ -100,6 +104,8 @@ def create_app(config: Optional[AppConfig] = None,
             if candidate.is_file() and dist.resolve() in candidate.parents:
                 headers = {"Cache-Control": "public, max-age=31536000, immutable"} if path.startswith("assets/") else {}
                 return FileResponse(candidate, headers=headers)
+            if path.startswith("assets/") or "." in path.rsplit("/", 1)[-1]:
+                raise HTTPException(404, "Not found")  # a missing file, not an app route
         return HTMLResponse(index_html(), headers={"Cache-Control": "no-store"})
 
     log.info("%s %s started, data dir %s", APP_NAME, __version__, config.data_dir)

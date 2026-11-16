@@ -463,7 +463,7 @@ async def grade_question(ctx: AppContext, quiz: Quiz, q: QuizQuestion, answer: s
     res = grade_objective(q, answer)
     if res is None:
         if quiz.engine == "offline":
-            g = OFF.grade_text_answer(answer, q.answer)
+            g = OFF.grade_text_answer(answer, q.answer, q.prompt)
             graded_by = "offline"
         else:
             if not (answer or "").strip():
@@ -480,7 +480,7 @@ async def grade_question(ctx: AppContext, quiz: Quiz, q: QuizQuestion, answer: s
                     g = {"score": max(0.0, min(1.0, score)), "verdict": verdict, "feedback": str(data.get("feedback") or "").strip()}
                     graded_by = f"{r.provider}:{r.model}"
                 except ProviderError:
-                    g = OFF.grade_text_answer(answer, q.answer)
+                    g = OFF.grade_text_answer(answer, q.answer, q.prompt)
                     graded_by = "offline"
         res = {"correct": g["verdict"] == "correct", "score": round(g["score"] * q.points, 2),
                "verdict": g["verdict"], "feedback": g["feedback"], "graded_by": graded_by}

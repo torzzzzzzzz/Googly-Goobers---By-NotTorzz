@@ -52,8 +52,10 @@ export function CreateQuiz({ kind }: { kind: "quiz" | "practice_test" }) {
   const [timeLimit, setTimeLimit] = usePersistentState(`${key}:time`, 20);
   const [title, setTitle] = useState("");
   useInitialSource(setSource);
+  const { toast } = useUi();
   const run = useStreamRun<{ quiz_id: number; count: number; requested: number }>((r) => {
     qc.invalidateQueries({ queryKey: ["quizzes"] });
+    if (r.count < r.requested) toast(`Created ${r.count} of ${r.requested} questions — the rest weren't clearly supported by your material and were discarded.`, "info");
     nav(kind === "quiz" ? `/quiz/${r.quiz_id}` : `/practice-test/${r.quiz_id}`, { state: { generated: r } });
   });
   useEffect(() => {

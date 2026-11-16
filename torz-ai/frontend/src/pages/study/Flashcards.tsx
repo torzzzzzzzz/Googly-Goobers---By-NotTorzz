@@ -46,8 +46,10 @@ function Create() {
   const [engine, setEngine] = usePersistentState<EngineChoice>("flash:engine", "ai");
   const [title, setTitle] = useState("");
   useInitialSource(setSource);
-  const run = useStreamRun<{ deck_id: number }>((r) => {
+  const { toast } = useUi();
+  const run = useStreamRun<{ deck_id: number; count: number; requested: number }>((r) => {
     qc.invalidateQueries({ queryKey: ["decks"] });
+    if (r.count < r.requested) toast(`Created ${r.count} of ${r.requested} cards — the rest weren't clearly supported by your material.`, "info");
     nav(`/flashcards/${r.deck_id}`);
   });
   useEffect(() => {

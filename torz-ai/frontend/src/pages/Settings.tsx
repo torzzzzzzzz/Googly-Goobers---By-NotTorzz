@@ -86,7 +86,9 @@ function ProfileSection() {
   const { settings, update } = useSettings();
   const { toast } = useUi();
   const [name, setName] = useState(settings?.profile.name ?? "");
-  useEffect(() => setName(settings?.profile.name ?? ""), [settings?.profile.name]);
+  useEffect(() => {
+    setName(settings?.profile.name ?? "");
+  }, [settings?.profile.name]);
   return (
     <Section title="Profile" description="Used for the welcome message. TORZ AI has no accounts — everything stays on this computer.">
       <div className="flex max-w-md items-end gap-3">

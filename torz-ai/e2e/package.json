@@ -1,0 +1,12 @@
+{
+  "name": "torz-ai-e2e",
+  "private": true,
+  "scripts": {
+    "test": "playwright test --trace off",
+    "test:live": "TORZ_E2E_LIVE=1 playwright test --trace off"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.63.0",
+    "@types/node": "^22.0.0"
+  }
+}

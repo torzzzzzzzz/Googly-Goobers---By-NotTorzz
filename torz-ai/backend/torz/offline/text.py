@@ -40,15 +40,31 @@ def tokens(text: str) -> list[str]:
     return [w.lower() for w in words(text) if w.lower() not in STOPWORDS and len(w) > 1 and not w.isdigit()]
 
 
-def stem(word: str) -> str:
-    """Tiny suffix-stripping stemmer, good enough for matching and ranking."""
-    w = word.lower()
+def _stem_raw(w: str) -> str:
+    if len(w) > 4 and w.endswith("es") and w[-3] in "sxz" or w.endswith(("ches", "shes")):
+        return w[:-2]
     for suf in ("ational", "ization", "fulness", "ousness", "iveness", "ations", "ation", "ments", "ment",
-                "ness", "ities", "ity", "ings", "ing", "edly", "ed", "ies", "es", "ly", "s"):
+                "ness", "ities", "ity", "ings", "ing", "edly", "ed", "ies", "ly", "s"):
         if w.endswith(suf) and len(w) - len(suf) >= 3:
             if suf == "ies":
                 return w[: -len(suf)] + "y"
+            if suf == "s" and w.endswith(("ss", "us", "is")):
+                return w
             return w[: -len(suf)]
+    return w
+
+
+def stem(word: str) -> str:
+    """Tiny suffix-stripping stemmer, good enough for matching and ranking.
+
+    Normalises silent final "e" and doubled final consonants so place/placed/placing and
+    run/running share a stem.
+    """
+    w = _stem_raw(word.lower())
+    if len(w) > 3 and w.endswith("e") and not w.endswith("ee"):
+        w = w[:-1]
+    if len(w) > 3 and w[-1] == w[-2] and w[-1] not in "aeiouls":
+        w = w[:-1]
     return w
 
 
@@ -126,8 +142,10 @@ def split_sentences(text: str) -> list[Sentence]:
             if stripped:
                 lead = len(seg) - len(seg.lstrip())
                 out.append(Sentence(stripped, start + lead, start + lead + len(stripped), para_of(start + lead)))
-            start = end
-            i = end
+            # Always advance: a newline boundary ends before the newline, so skip past it.
+            nxt_i = end if end > i else i + 1
+            start = nxt_i
+            i = nxt_i
             continue
         i += 1
     seg = text[start:]
