@@ -35,12 +35,12 @@ export default function QA() {
   const [pending, setPending] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const run = useStreamRun<{ output: string; engine: string }>((r) => {
-    setTurns((t) => [...t, { q: pending ?? "", a: r.output, passages: runRef.current.passages ?? [], meta: runRef.current.meta, engine: r.engine }]);
+  const pendingRef = useRef<string | null>(null);
+  pendingRef.current = pending;
+  const run = useStreamRun<{ output: string; engine: string }>((r, acc) => {
+    setTurns((t) => [...t, { q: pendingRef.current ?? "", a: r.output, passages: acc.passages ?? [], meta: acc.meta, engine: r.engine }]);
     setPending(null);
   });
-  const runRef = useRef(run);
-  runRef.current = run;
 
   useEffect(() => {
     if (loc.state?.fileId) setSources((s) => (s.some((x) => x.type === "file" && x.id === loc.state!.fileId) ? s : [...s, { type: "file", id: loc.state!.fileId, label: loc.state!.fileName ?? "File" }]));

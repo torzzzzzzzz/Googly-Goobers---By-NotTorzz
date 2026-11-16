@@ -1,1 +1,0 @@
-import{c as e}from"./index-Cx3lJ4Js.js";import{t}from"./WritingWorkspace-DY4HjBo7.js";import{M as n}from"./ui-k37LwDl2.js";var r=n();function i(){return e(`assistant`),(0,r.jsx)(t,{})}export{i as default};

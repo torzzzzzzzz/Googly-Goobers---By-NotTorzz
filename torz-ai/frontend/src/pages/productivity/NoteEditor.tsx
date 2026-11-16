@@ -22,6 +22,8 @@ export default function NoteEditor() {
   const [state, setState] = useState<"saved" | "saving" | "dirty">("saved");
   const timer = useRef<number | null>(null);
   const htmlRef = useRef("");
+  const fieldsRef = useRef({ title: "", tags: "" });
+  fieldsRef.current = { title, tags };
 
   const save = async (fields: Record<string, unknown>) => {
     setState("saving");
@@ -37,7 +39,10 @@ export default function NoteEditor() {
   const schedule = () => {
     setState("dirty");
     if (timer.current) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => save({ title, tags, content_html: htmlRef.current }), 800);
+    timer.current = window.setTimeout(() => {
+      timer.current = null;
+      save({ ...fieldsRef.current, content_html: htmlRef.current });
+    }, 800);
   };
 
   const editor = useRichEditor({ content: "", placeholder: "Write your notes…", onUpdate: (html) => { htmlRef.current = html; schedule(); } });
@@ -63,13 +68,13 @@ export default function NoteEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, tags]);
 
+  // Flush a pending save when leaving the page (refs hold the latest values).
   useEffect(() => () => {
     if (timer.current) {
       window.clearTimeout(timer.current);
-      void patch(`/api/notes/${noteId}`, { title, tags, content_html: htmlRef.current }).catch(() => undefined);
+      void patch(`/api/notes/${noteId}`, { ...fieldsRef.current, content_html: htmlRef.current }).catch(() => undefined);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [noteId]);
 
   const studyWith = (path: string) => nav(path, { state: { text: editor?.getText({ blockSeparator: "\n\n" }), title } });
 

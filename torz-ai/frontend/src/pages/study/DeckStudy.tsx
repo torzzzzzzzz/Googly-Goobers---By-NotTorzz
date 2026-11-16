@@ -120,7 +120,7 @@ function FlipMode({ cards, onUpdate }: { cards: CardT[]; onUpdate: (id: number, 
   const card = byId[order[i]];
   const go = (d: number) => {
     setFlipped(false);
-    setTimeout(() => setI((x) => Math.max(0, Math.min(order.length - 1, x + d))), 120);
+    setI((x) => Math.max(0, Math.min(order.length - 1, x + d)));
   };
   const mark = async (status: "known" | "difficult") => {
     if (!card) return;
@@ -154,7 +154,7 @@ function FlipMode({ cards, onUpdate }: { cards: CardT[]; onUpdate: (id: number, 
         <>
           <ProgressBar value={(100 * (i + 1)) / order.length} className="mb-5" />
           <div className="flip-scene">
-            <button type="button" onClick={() => setFlipped((f) => !f)} aria-label={flipped ? "Show front" : "Show answer"} className={cx("flip-card relative block h-[340px] w-full text-left", flipped && "is-flipped")}>
+            <button key={card.id} type="button" onClick={() => setFlipped((f) => !f)} aria-label={flipped ? "Show front" : "Show answer"} className={cx("flip-card relative block h-[340px] w-full text-left animate-fade-in", flipped && "is-flipped")}>
               <div className="flip-face card absolute inset-0 flex flex-col p-8">
                 <div className="flex items-center gap-2">
                   {card.topic && <Badge tone="accent">{card.topic}</Badge>}

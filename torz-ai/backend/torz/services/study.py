@@ -448,14 +448,13 @@ def grade_objective(q: QuizQuestion, answer: str) -> dict[str, Any] | None:
     a = (answer or "").strip()
     if q.type in ("multiple_choice", "true_false"):
         ok = _norm_answer(a) == _norm_answer(q.answer)
-        return {"correct": ok, "score": q.points if ok else 0.0, "verdict": "correct" if ok else "incorrect",
-                "feedback": "" if ok else f"Correct answer: {q.answer}"}
+        # The correct answer is returned separately (model_answer); no duplicate feedback text.
+        return {"correct": ok, "score": q.points if ok else 0.0, "verdict": "correct" if ok else "incorrect", "feedback": ""}
     if q.type == "fill_blank":
         na, nb = _norm_answer(a), _norm_answer(q.answer)
         ok = bool(na) and (na == nb or SequenceMatcher(None, na, nb).ratio() >= 0.85 or
                            (len(nb.split()) > 1 and {stem(x) for x in na.split()} == {stem(x) for x in nb.split()}))
-        return {"correct": ok, "score": q.points if ok else 0.0, "verdict": "correct" if ok else "incorrect",
-                "feedback": "" if ok else f"Correct answer: {q.answer}"}
+        return {"correct": ok, "score": q.points if ok else 0.0, "verdict": "correct" if ok else "incorrect", "feedback": ""}
     return None
 
 

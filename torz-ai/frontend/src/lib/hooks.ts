@@ -23,8 +23,15 @@ export interface RunState<T = any> {
 
 const initial: RunState = { status: "idle", text: "", meta: null, progress: null, result: null, error: null, passages: null };
 
-/** Run a streaming tool endpoint and expose its live state. */
-export function useStreamRun<T = any>(onDone?: (result: T) => void) {
+export interface StreamAcc {
+  meta: RunMeta | null;
+  passages: any[] | null;
+  text: string;
+}
+
+/** Run a streaming tool endpoint and expose its live state. onDone receives the final payload plus everything
+ * accumulated from the stream (independent of React's render timing). */
+export function useStreamRun<T = any>(onDone?: (result: T, acc: StreamAcc) => void) {
   const [state, setState] = useState<RunState<T>>(initial as RunState<T>);
   const abortRef = useRef<AbortController | null>(null);
   const qc = useQueryClient();
@@ -37,11 +44,15 @@ export function useStreamRun<T = any>(onDone?: (result: T) => void) {
       const ctrl = new AbortController();
       abortRef.current = ctrl;
       setState({ ...(initial as RunState<T>), status: "running" });
+      const acc: StreamAcc = { meta: null, passages: null, text: "" };
       await streamTool(
         path,
         body,
         (ev: StreamEvent) => {
           if (ctrl.signal.aborted) return;
+          if (ev.type === "meta") acc.meta = { ...(acc.meta ?? {}), ...ev };
+          else if (ev.type === "delta") acc.text += ev.text ?? "";
+          else if (ev.type === "passages") acc.passages = ev.passages;
           setState((s) => {
             switch (ev.type) {
               case "meta":
@@ -69,7 +80,7 @@ export function useStreamRun<T = any>(onDone?: (result: T) => void) {
           if (ev.type === "done") {
             qc.invalidateQueries({ queryKey: ["dashboard"] });
             qc.invalidateQueries({ queryKey: ["history"] });
-            onDoneRef.current?.(ev as unknown as T);
+            onDoneRef.current?.(ev as unknown as T, acc);
           }
         },
         ctrl.signal,

@@ -83,7 +83,10 @@ export function WritingWorkspace({ docId }: { docId?: number }) {
     if (!docId) return;
     setSaveState("dirty");
     if (saveTimer.current) window.clearTimeout(saveTimer.current);
-    saveTimer.current = window.setTimeout(() => void saveNow(false), 900);
+    saveTimer.current = window.setTimeout(() => {
+      saveTimer.current = null;
+      void saveNow(false);
+    }, 900);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [docId]);
 
@@ -125,6 +128,7 @@ export function WritingWorkspace({ docId }: { docId?: number }) {
     async (snapshot: boolean) => {
       if (!docId) return;
       if (saveTimer.current) window.clearTimeout(saveTimer.current);
+      saveTimer.current = null;
       setSaveState("saving");
       try {
         const d = await patch(`/api/documents/${docId}`, {
