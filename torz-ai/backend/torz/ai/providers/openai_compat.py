@@ -150,6 +150,7 @@ class OpenAICompatibleProvider(Provider):
 class OpenAIProvider(OpenAICompatibleProvider):
     id = "openai"
     label = "OpenAI"
+    local = False
     needs_key = True
     default_base_url = "https://api.openai.com/v1"
     docs_url = "https://platform.openai.com/api-keys"

@@ -1,0 +1,1 @@
+import{B as e,M as t}from"./ui-jTIPR3px.js";import{c as n}from"./index-D3wx95kr.js";import{t as r}from"./WritingWorkspace-BBRO5Ke_.js";var i=t();function a(){n(`documents`);let{id:t}=e();return(0,i.jsx)(r,{docId:Number(t)},t)}export{a as default};

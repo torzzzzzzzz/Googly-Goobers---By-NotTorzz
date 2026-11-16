@@ -1,0 +1,1 @@
+import{c as e}from"./index-D3wx95kr.js";import{t}from"./WritingWorkspace-BBRO5Ke_.js";import{M as n}from"./ui-jTIPR3px.js";var r=n();function i(){return e(`assistant`),(0,r.jsx)(t,{})}export{i as default};
