@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TORZ AI</title>
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header class="top">
+      <img src="icons/icon32.png" alt="" width="24" height="24" />
+      <div class="brand">TORZ <span>AI</span></div>
+      <span id="conn" class="conn" title="Checking connection…"><i></i><b>Checking…</b></span>
+    </header>
+    <nav class="tabs" role="tablist">
+      <button role="tab" data-tab="assist" class="active">Assist</button>
+      <button role="tab" data-tab="typer">AutoTyper</button>
+      <button role="tab" data-tab="settings">Settings</button>
+    </nav>
+
+    <main>
+      <!-- ASSIST -->
+      <section id="tab-assist" class="tab active">
+        <div id="assist-empty" class="hint">
+          <p><b>Select text on any page</b>, right-click and choose <b>TORZ AI</b> to improve, rewrite, paraphrase, fix or summarize it.</p>
+          <p>Or paste text here:</p>
+        </div>
+        <label class="field"><span>Text</span><textarea id="assist-text" rows="6" placeholder="Paste or select text…"></textarea></label>
+        <div class="row">
+          <select id="assist-action" aria-label="Action">
+            <option value="improve">Improve writing</option>
+            <option value="humanize">Rewrite naturally</option>
+            <option value="paraphrase">Paraphrase</option>
+            <option value="grammar">Fix grammar</option>
+            <option value="summarize">Summarize</option>
+            <option value="send">Send to TORZ AI</option>
+          </select>
+          <button id="assist-run" class="primary">Run</button>
+        </div>
+        <div id="assist-source" class="muted small"></div>
+        <div id="assist-out" class="card hidden">
+          <div class="card-head"><span class="label">Result</span><span id="assist-model" class="badge"></span></div>
+          <div id="assist-result" class="result"></div>
+          <div class="row wrap">
+            <button id="assist-replace" class="primary hidden">Replace selection</button>
+            <button id="assist-undo" class="hidden">Undo replace</button>
+            <button id="assist-copy">Copy</button>
+            <button id="assist-stop" class="hidden">Stop</button>
+          </div>
+          <div id="assist-msg" class="small muted"></div>
+        </div>
+      </section>
+
+      <!-- AUTOTYPER -->
+      <section id="tab-typer" class="tab">
+        <div class="row between">
+          <span class="label">Text to type</span>
+          <button id="typer-load" class="ghost small">Load from TORZ AI</button>
+        </div>
+        <textarea id="typer-text" rows="7" placeholder="Prepare text in TORZ AI → AutoTyper → Send to extension, or paste it here."></textarea>
+        <div id="typer-meta" class="small muted"></div>
+        <label class="field"><span>Speed: <b id="wpm-label">70</b> words per minute</span><input id="typer-wpm" type="range" min="20" max="240" step="5" value="70" /></label>
+        <div class="row wrap small">
+          <label class="check"><input id="typer-natural" type="checkbox" checked /> Natural rhythm</label>
+          <label class="check"><input id="typer-punct" type="checkbox" checked /> Pause after punctuation</label>
+        </div>
+        <label class="field"><span>Engine</span>
+          <select id="typer-engine">
+            <option value="keyboard">Keyboard — works in Google Docs and most editors</option>
+            <option value="compatibility">Compatibility — the field you right-clicked</option>
+          </select>
+        </label>
+        <div id="engine-help" class="hint small"></div>
+        <div id="typer-preview" class="card small"><span class="label">Preview</span><div id="typer-preview-text" class="preview"></div></div>
+        <div class="row">
+          <button id="typer-start" class="primary grow">Start typing</button>
+        </div>
+        <div id="typer-status" class="card hidden">
+          <div class="row between"><b id="typer-state">Ready</b><span id="typer-count" class="small muted"></span></div>
+          <div class="bar"><i id="typer-bar"></i></div>
+          <div id="typer-target" class="small muted"></div>
+          <div id="typer-error" class="small error"></div>
+          <div class="row wrap">
+            <button id="typer-pause">Pause</button>
+            <button id="typer-resume" class="hidden">Resume</button>
+            <button id="typer-stop" class="danger">Stop</button>
+            <button id="typer-undo" class="hidden">Undo</button>
+            <button id="typer-new" class="ghost hidden">New job</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="tab-settings" class="tab">
+        <label class="field"><span>TORZ AI address</span><input id="base-url" type="url" value="http://127.0.0.1:8765" /></label>
+        <div class="row"><button id="save-base" class="primary">Save &amp; test</button><button id="open-app">Open TORZ AI</button></div>
+        <div id="settings-msg" class="small muted"></div>
+        <div class="hint small">
+          <p><b>Privacy.</b> The extension talks only to your own TORZ AI app on this computer. It reads a page only when you use a TORZ AI menu item or start typing.</p>
+          <p><b>Why “debugger” permission?</b> Google Docs ignores text inserted by normal extension scripts. The Keyboard engine uses Chrome's debugging protocol to send real keystrokes to the page you are on — only while typing — and Chrome shows a banner the whole time. Close that banner to stop instantly.</p>
+          <p id="version" class="muted"></p>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="sidepanel.js"></script>
+  </body>
+</html>

@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "TORZ AI",
+  "version": "1.0.0",
+  "description": "Companion for your private TORZ AI app: improve, paraphrase or summarize selected text, and type prepared text into Google Docs or any editor.",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAoEZg+7z3dTlzecw4MzUP81DFFk1mgKXHrIKu9NCPyaDRp1tUjQLbTx+HUkje9hKM9Z6Zfq0WdtiO6jorcFJNxaI6oG+Vsp3u4ZeyWwOwsn0VrALBjXfx3pgMMzrplHFpuAiLfJpZ7cksUPuCYxVbFVdhWjVvuTYXnzyfiUBCM8C9P2GtmWhUVjIC4DyvoCuZwT+RMU/uZdZqgjAc21XpkeTl8AVSGAmeZFVgIdNhdzf5nCXPEmtKlOjPCjAH/NTKITmqzAskA5VTE8Tk269pzlKtrhn1LvsGBWYAWBjC2QUnx/n6ht/aRXSCx6q5JZi1tsICq4j23bGFayNuwHoG2QIDAQAB",
+  "minimum_chrome_version": "116",
+  "icons": { "16": "icons/icon16.png", "32": "icons/icon32.png", "48": "icons/icon48.png", "128": "icons/icon128.png" },
+  "action": { "default_title": "Open TORZ AI", "default_icon": { "16": "icons/icon16.png", "32": "icons/icon32.png" } },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "background": { "service_worker": "background.js", "type": "module" },
+  "permissions": ["storage", "contextMenus", "sidePanel", "scripting", "activeTab", "debugger"],
+  "host_permissions": ["http://127.0.0.1/*", "http://localhost/*"],
+  "content_scripts": [
+    { "matches": ["http://127.0.0.1/*", "http://localhost/*"], "js": ["bridge.js"], "run_at": "document_end" }
+  ],
+  "commands": {
+    "_execute_action": { "suggested_key": { "default": "Alt+Shift+T" }, "description": "Open the TORZ AI side panel" }
+  }
+}
