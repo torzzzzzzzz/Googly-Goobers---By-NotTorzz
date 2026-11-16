@@ -179,7 +179,7 @@ html[data-motion="reduce"] *, html[data-motion="reduce"] *::before, html[data-mo
 /* diff highlights */
 .diff-add { background: var(--diff-add); color: var(--diff-add-text); border-radius: 4px; padding: 0 1px; }
 .diff-del { background: var(--diff-del); color: var(--diff-del-text); text-decoration: line-through; text-decoration-color: color-mix(in srgb, var(--diff-del-text) 60%, transparent); border-radius: 4px; padding: 0 1px; }
-.sent-changed { background: color-mix(in srgb, var(--accent) 9%, transparent); border-radius: 6px; box-shadow: inset 2px 0 0 var(--accent); padding: 1px 3px; }
+.sent-changed { background: color-mix(in srgb, var(--accent) 9%, transparent); border-radius: 5px; padding: 1px 2px; -webkit-box-decoration-break: clone; box-decoration-break: clone; }
 
 /* flashcard flip */
 .flip-scene { perspective: 1400px; }

@@ -16,7 +16,7 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { get, post, put } from "../lib/api";
-import { compact, greeting, timeAgo } from "../lib/format";
+import { compact, greeting, plural, timeAgo } from "../lib/format";
 import { useAIStatus, useFavorites } from "../lib/hooks";
 import { useSettings } from "../lib/settings";
 import { CATEGORIES, TOOLS, TOOL_BY_ID, toolName, type ToolDef } from "../lib/tools";
@@ -89,7 +89,7 @@ export default function Dashboard() {
           <>
             <Stat label="Words processed" value={compact(d.stats.words_total)} sub={`${compact(d.stats.words_week)} this week`} />
             <Stat label="Tool runs this week" value={d.stats.runs_week.toLocaleString()} sub={`${d.stats.runs_total.toLocaleString()} all time`} />
-            <Stat label="Library" value={(d.stats.documents + d.stats.notes).toLocaleString()} sub={`${d.stats.documents} documents · ${d.stats.notes} notes · ${d.stats.files} files`} />
+            <Stat label="Library" value={(d.stats.documents + d.stats.notes).toLocaleString()} sub={`${plural(d.stats.documents, "document")} · ${plural(d.stats.notes, "note")} · ${plural(d.stats.files, "file")}`} />
             <Stat
               label="Study progress"
               value={d.stats.cards ? `${Math.round((100 * d.stats.cards_known) / d.stats.cards)}%` : "—"}

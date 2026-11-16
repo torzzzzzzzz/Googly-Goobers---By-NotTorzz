@@ -1,0 +1,4 @@
+# Windows batch files must keep CRLF line endings exactly, however the repo is downloaded.
+*.bat -text
+*.cmd -text
+*.sh text eol=lf

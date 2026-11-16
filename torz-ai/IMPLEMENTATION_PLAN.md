@@ -86,3 +86,8 @@ practice_test), `quiz_questions`, `quiz_attempts`, `study_guides`, `favorites`, 
 2. **Google Docs API engine** (official integration, optional): OAuth (Desktop client created once by the
    user in Google Cloud), list docs via Drive API, insert text progressively with `documents.batchUpdate`,
    pause / resume / stop / undo (deletes the inserted range).
+
+## Status
+
+All phases (inspection, foundation, features, polish, testing, delivery) are complete. See `BUILD_STATUS.md` for
+feature status and known limitations, and `TEST_RESULTS.md` for the test runs.

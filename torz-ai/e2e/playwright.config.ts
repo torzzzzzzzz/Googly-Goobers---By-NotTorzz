@@ -41,8 +41,10 @@ export default defineConfig({
       },
     },
   ],
-  projects: [
-    { name: "app", testIgnore: /extension\.spec\.ts/ },
-    { name: "extension", testMatch: /extension\.spec\.ts/ },
-  ],
+  projects: LIVE
+    ? [{ name: "live", testMatch: /live\.spec\.ts/ }]
+    : [
+        { name: "app", testIgnore: /(extension|live)\.spec\.ts/ },
+        { name: "extension", testMatch: /extension\.spec\.ts/ },
+      ],
 });

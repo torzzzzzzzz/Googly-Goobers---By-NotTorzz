@@ -41,15 +41,22 @@ export function HighlightedRevision({ original, revised, showWords = true }: { o
   const rows = useMemo(() => alignSentences(original, revised), [original, revised]);
   return (
     <div className="whitespace-pre-wrap text-[0.95rem] leading-relaxed text-ink">
-      {rows.map((r, i) =>
-        r.revised === null ? null : r.changed ? (
-          <span key={i} className="sent-changed" title={r.original ? `Original: ${r.original.trim()}` : "New sentence"}>
-            {showWords && r.original ? <Segments segs={wordDiff(r.original, r.revised)} side="right" /> : r.revised}
+      {rows.map((r, i) => {
+        if (r.revised === null) return null;
+        if (!r.changed) return <span key={i}>{r.revised}</span>;
+        // Keep trailing spaces/newlines outside the highlight so blank lines are not tinted.
+        const core = r.revised.replace(/\s+$/, "");
+        const tail = r.revised.slice(core.length);
+        const orig = r.original?.replace(/\s+$/, "") ?? null;
+        return (
+          <span key={i}>
+            <span className="sent-changed" title={orig ? `Original: ${orig.trim()}` : "New sentence"}>
+              {showWords && orig ? <Segments segs={wordDiff(orig, core)} side="right" /> : core}
+            </span>
+            {tail}
           </span>
-        ) : (
-          <span key={i}>{r.revised}</span>
-        ),
-      )}
+        );
+      })}
     </div>
   );
 }
