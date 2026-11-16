@@ -1,0 +1,20 @@
+# Python
+backend/.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.egg-info/
+
+# Node
+frontend/node_modules/
+e2e/node_modules/
+e2e/test-results/
+e2e/playwright-report/
+frontend/.vite/
+
+# Local data (never commit)
+data/
+*.db
+*.db-wal
+*.db-shm
+.env

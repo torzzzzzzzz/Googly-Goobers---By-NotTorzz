@@ -1,0 +1,3 @@
+# Optional: offline OCR for scanned PDFs and images
+rapidocr>=3.0
+onnxruntime>=1.18
